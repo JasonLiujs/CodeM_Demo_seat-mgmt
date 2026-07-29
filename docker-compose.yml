@@ -3,8 +3,6 @@ services:
     image: codem-demo:${IMAGE_TAG:-latest}
     build: .
     restart: unless-stopped
-    ports:
-      - "8080:8080"
     environment:
       - PORT=8080
     healthcheck:
@@ -13,3 +11,21 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  caddy_data:
+  caddy_config:

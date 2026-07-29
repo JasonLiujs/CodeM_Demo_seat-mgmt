@@ -52,7 +52,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "Dockerfile,docker-compose.yml,package.json,server.js"
+          source: "Dockerfile,docker-compose.yml,Caddyfile,package.json,server.js"
           strip_components: 0
           target: ${{ env.APP_DIR }}
           overwrite: true
@@ -78,10 +78,10 @@ jobs:
 
             IMAGE_TAG=${IMAGE_TAG} docker compose up -d --remove-orphans
 
-            echo "waiting for health check..."
+            echo "waiting for app health check..."
             ok=0
             for i in $(seq 1 10); do
-              if curl -sf http://127.0.0.1:8080/healthz > /dev/null; then
+              if docker compose exec -T app wget -qO- http://127.0.0.1:8080/healthz 2>/dev/null | grep -q ok; then
                 ok=1; break
               fi
               sleep 3
@@ -113,7 +113,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
-              body: `✅ 部署成功\n\n- 提交: ${sha}\n- 服务: http://meegodemo.com:8080\n- 健康检查: http://meegodemo.com:8080/healthz\n- 时间: ${new Date().toISOString()}`
+              body: `✅ 部署成功\n\n- 提交: ${sha}\n- 服务: https://www.meegodemo.com\n- 健康检查: https://www.meegodemo.com/healthz\n- 时间: ${new Date().toISOString()}`
             });
 
       - name: Notify deployment failure
