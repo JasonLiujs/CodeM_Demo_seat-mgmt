@@ -1,7 +1,9 @@
 node_modules
 npm-debug.log
-Dockerfile
-docker-compose.yml
-.github
-.git
 .env
+.env.*
+!.env.example
+.git
+.github
+.DS_Store
+dist
