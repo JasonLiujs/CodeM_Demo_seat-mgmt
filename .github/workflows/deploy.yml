@@ -54,7 +54,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "Dockerfile,docker-compose.yml,Caddyfile,package.json,server.js"
+          source: "Dockerfile,docker-compose.yml,Caddyfile,package.json,package-lock.json,server.js,tsconfig.json,vite.config.ts,index.html,src"
           strip_components: 0
           target: ${{ env.APP_DIR }}
           overwrite: true
