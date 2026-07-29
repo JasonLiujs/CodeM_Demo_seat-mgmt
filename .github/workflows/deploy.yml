@@ -22,6 +22,8 @@ jobs:
           node-version: 20
       - run: npm ci || npm install
         if: hashFiles('package.json') != ''
+      - run: npm run build
+        if: hashFiles('package.json') != ''
       - run: npm test
         if: hashFiles('package.json') != ''
 
