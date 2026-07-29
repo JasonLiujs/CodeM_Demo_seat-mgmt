@@ -51,7 +51,8 @@ jobs:
       - name: Pack repository
         run: |
           tar --exclude='./.git' --exclude='./node_modules' --exclude='./dist' \
-            -czf codem-demo-src.tar.gz .
+            -czf ../codem-demo-src.tar.gz .
+          mv ../codem-demo-src.tar.gz .
 
       - name: Copy tarball to server
         uses: appleboy/scp-action@v0.1.7
