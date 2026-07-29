@@ -63,7 +63,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: IMAGE_TAG
+          envs: IMAGE_TAG,IMAGE_NAME,APP_DIR
           script: |
             set -e
             cd ${{ env.APP_DIR }}
