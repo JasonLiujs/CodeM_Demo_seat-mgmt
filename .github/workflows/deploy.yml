@@ -91,6 +91,16 @@ jobs:
               docker update --label-add deploy.tag=${IMAGE_TAG} $(docker compose ps -q app) 2>/dev/null || true
               echo "deploy succeeded: ${IMAGE_TAG}"
               docker image prune -f
+
+              echo "waiting for cloudflare tunnel..."
+              TUNNEL_URL=""
+              for i in $(seq 1 15); do
+                TUNNEL_URL=$(docker compose logs tunnel 2>&1 | grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' | head -1 || true)
+                [ -n "$TUNNEL_URL" ] && break
+                sleep 2
+              done
+              echo "${TUNNEL_URL}" > /opt/codem-demo/.tunnel_url
+              echo "tunnel url: ${TUNNEL_URL:-not ready yet}"
             else
               echo "health check FAILED, rolling back..."
               if [ -n "$PREV_TAG" ]; then
@@ -103,17 +113,34 @@ jobs:
               exit 1
             fi
 
+      - name: Fetch tunnel URL
+        if: success()
+        id: tunnel
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cat /opt/codem-demo/.tunnel_url 2>/dev/null || echo ""
+
       - name: Notify deployment success
         if: success()
         uses: actions/github-script@v7
+        env:
+          TUNNEL_URL: ${{ steps.tunnel.outputs.stdout }}
         with:
           script: |
             const sha = context.sha.substring(0, 7);
+            const tunnel = (process.env.TUNNEL_URL || '').trim();
+            const serviceLine = tunnel
+              ? `- 公网访问: ${tunnel}\n- 健康检查: ${tunnel}/healthz`
+              : '- 公网访问: 隧道地址未就绪,稍后 SSH 查看 /opt/codem-demo/.tunnel_url';
             await github.rest.repos.createCommitComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
-              body: `✅ 部署成功\n\n- 提交: ${sha}\n- 服务: http://120.48.91.139:8080\n- 健康检查: http://120.48.91.139:8080/healthz\n- 时间: ${new Date().toISOString()}`
+              body: `✅ 部署成功\n\n- 提交: ${sha}\n${serviceLine}\n- 时间: ${new Date().toISOString()}`
             });
 
       - name: Notify deployment failure

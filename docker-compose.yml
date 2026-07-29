@@ -13,3 +13,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://app:8080
+    depends_on:
+      app:
+        condition: service_healthy
