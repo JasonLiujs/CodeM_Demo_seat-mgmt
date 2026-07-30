@@ -234,6 +234,20 @@ export class EnemySpawner {
     }
     this.enemies = [];
   }
+
+  /**
+   * 重置为初始状态：销毁所有敌人，波次/击杀/启动状态归零。
+   * 重新开始游戏时调用，使下次 update 重新从第一波开始。
+   */
+  reset(): void {
+    this.dispose();
+    this.wave = 0;
+    this.spawnedThisWave = 0;
+    this.waveTargetCount = 0;
+    this.waveDelayTimer = -1;
+    this.totalKills = 0;
+    this.started = false;
+  }
 }
 
 /** 导出常量供测试与后续模块使用。 */

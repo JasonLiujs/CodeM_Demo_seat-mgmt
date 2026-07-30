@@ -254,6 +254,16 @@ export class Weapon {
     };
   }
 
+  /** 重新装填弹匣至满载并取消换弹状态（重新开始游戏时调用）。 */
+  refill(): void {
+    this.ammo = this.magazineSize;
+    this.reloading = false;
+    this.reloadElapsed = 0;
+    this.firing = false;
+    this.showReloadHint(false);
+    this.notifyAmmoChange();
+  }
+
   /**
    * 每帧更新：处理自动开火、换弹进度、枪口火光衰减。
    * 由 Game.update(delta) 调用。

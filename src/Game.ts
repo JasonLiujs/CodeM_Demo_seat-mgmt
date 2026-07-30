@@ -18,6 +18,7 @@ import { Weapon } from './engine/Weapon.js';
 import { EnemySpawner } from './engine/EnemySpawner.js';
 import { GameState } from './engine/GameState.js';
 import { HUD } from './engine/HUD.js';
+import { MenuOverlay } from './engine/MenuOverlay.js';
 import type { Object3D } from 'three';
 
   /** 武器单发伤害（与既有 weapon.onHit 逻辑一致）。 */
@@ -42,6 +43,8 @@ weapon?: Weapon;
   gameState?: GameState;
   /** HUD 界面实例，默认创建新实例。 */
   hud?: HUD;
+  /** 主菜单与结算面板实例，默认创建新实例。 */
+  menu?: MenuOverlay;
 }
 
 /**
@@ -68,6 +71,8 @@ export class Game {
   readonly gameState: GameState;
   /** HUD 界面，DOM 覆盖层显示血量/波次/弹药/击杀。 */
   readonly hud: HUD;
+  /** 主菜单与结算面板。 */
+  readonly menu: MenuOverlay;
   private readonly clock: Clock;
   private animationId: number | null = null;
   private running = false;
@@ -95,8 +100,19 @@ export class Game {
     this.gameState = options.gameState ?? new GameState({ maxHp: 100 });
     // HUD 用 DOM 覆盖层显示状态，订阅 GameState 变化刷新
     this.hud = options.hud ?? new HUD();
+      // 主菜单与结算面板覆盖层
+      this.menu = options.menu ?? new MenuOverlay();
       this.gameState.onStateChange = (snap) => this.hud.update(snap);
-      this.gameState.onGameOver = () => this.hud.showGameOver();
+      // GameOver 时显示结算面板（存活波次 + 击杀数）并退出 Pointer Lock
+      this.gameState.onGameOver = () => {
+        this.hud.showGameOver();
+        this.menu.showGameOver(this.gameState.getSnapshot());
+        this.exitPointerLock();
+      };
+      // 主菜单点击「开始游戏」：隐藏菜单，请求 Pointer Lock，确保主循环运行
+      this.menu.onStart = () => this.startGame();
+      // 结算面板点击「重新开始」：重置 GameState 与场景，重新进入游戏
+      this.menu.onRestart = () => this.restart();
 
       // 将武器射线目标接入敌人 mesh 列表
     this.weapon.setTargets(this.enemySpawner.getTargets());
@@ -128,7 +144,10 @@ export class Game {
     this.clock = new Clock();
     }
 
-  /** 启动主循环。幂等：已运行时重复调用无副作用。 */
+  /**
+   * 启动主循环（幂等）。启动后显示主菜单，等待玩家点击开始。
+   * 不自动请求 Pointer Lock——由主菜单「开始游戏」按钮触发。
+   */
   start(): void {
     if (this.running) return;
     this.running = true;
@@ -146,13 +165,16 @@ export class Game {
     this.clock.stop();
   }
 
-  /** 每帧逻辑更新。后续需求在此扩展（敌人、武器等）。 */
-  update(delta: number): void {
+  /**
+  * 每帧逻辑更新。Game Over 时暂停敌人/武器更新，仅保留渲染。
+    */
+    update(delta: number): void {
     this.arena.update(delta);
-    this.player.update(delta);
+  this.player.update(delta);
+    if (this.gameState.isGameOver()) return;
     // 敌人波次更新：移动、生成、清理
-  this.enemySpawner.update(delta, this.player.getPosition());
-    // 同步武器射线目标（敌人列表会随死亡/新生变化）
+    this.enemySpawner.update(delta, this.player.getPosition());
+  // 同步武器射线目标（敌人列表会随死亡/新生变化）
     this.weapon.setTargets(this.enemySpawner.getTargets());
     this.weapon.update(delta);
   }
@@ -171,6 +193,35 @@ export class Game {
     this.animationId = requestAnimationFrame(this.loop);
   };
 
+  /**
+   * 从主菜单进入游戏：隐藏菜单，请求 Pointer Lock。
+   * 主循环应已通过 start() 启动。
+   */
+  startGame(): void {
+    this.menu.hide();
+    this.hud.hideGameOver();
+    this.player.lock();
+  }
+
+  /**
+   * 重新开始：重置 GameState，隐藏结算面板，重置敌人与弹药，重新请求 Pointer Lock。
+   */
+  restart(): void {
+    this.gameState.reset();
+    this.hud.hideGameOver();
+    this.menu.hide();
+    this.enemySpawner.reset();
+    this.weapon.refill();
+    this.player.lock();
+  }
+
+  /** 退出 Pointer Lock（GameOver 时调用，释放鼠标供结算面板交互）。 */
+  private exitPointerLock(): void {
+    if (document.pointerLockElement !== null) {
+      document.exitPointerLock();
+    }
+  }
+
   /** 释放所有资源并停止循环。 */
   dispose(): void {
     this.stop();
@@ -179,7 +230,8 @@ export class Game {
     this.player.dispose();
     this.arena.dispose(this.renderer.scene);
     this.renderer.dispose();
-  this.camera.dispose();
-  this.hud.dispose();
+    this.camera.dispose();
+    this.hud.dispose();
+    this.menu.dispose();
   }
 }
