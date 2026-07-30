@@ -12,12 +12,15 @@
 import { Clock } from 'three';
 import { Renderer } from './engine/Renderer.js';
 import { Camera } from './engine/Camera.js';
+import { Arena } from './engine/Arena.js';
 
 export interface GameOptions {
   /** 渲染器实例，默认创建新实例。 */
   renderer?: Renderer;
   /** 相机实例，默认创建新实例。 */
   camera?: Camera;
+  /** 竞技场场景实例，默认基于 renderer.scene 创建。 */
+  arena?: Arena;
 }
 
 /**
@@ -32,13 +35,17 @@ export interface GameOptions {
 export class Game {
   readonly renderer: Renderer;
   readonly camera: Camera;
+  /** 竞技场场景，包含地板/围墙/掩体/光照。 */
+  readonly arena: Arena;
   private readonly clock: Clock;
   private animationId: number | null = null;
   private running = false;
 
   constructor(options: GameOptions = {}) {
     this.renderer = options.renderer ?? new Renderer();
-    this.camera = options.camera ?? new Camera();
+    // 相机默认置于竞技场内、略高俯视，保证视野合理（验收标准）
+    this.camera = options.camera ?? new Camera({ position: [0, 6, 16] });
+    this.arena = options.arena ?? new Arena(this.renderer.scene);
     this.clock = new Clock();
   }
 
@@ -60,9 +67,9 @@ export class Game {
     this.clock.stop();
   }
 
-  /** 每帧逻辑更新。后续需求在此扩展（玩家、敌人、武器等）。 */
-  update(_delta: number): void {
-    // 基类无更新逻辑；后续需求在子类或通过组合模块注入
+    /** 每帧逻辑更新。后续需求在此扩展（玩家、敌人、武器等）。 */
+  update(delta: number): void {
+    this.arena.update(delta);
   }
 
   /** 每帧渲染。 */
@@ -82,6 +89,7 @@ export class Game {
   /** 释放所有资源并停止循环。 */
   dispose(): void {
     this.stop();
+    this.arena.dispose(this.renderer.scene);
     this.renderer.dispose();
     this.camera.dispose();
   }
