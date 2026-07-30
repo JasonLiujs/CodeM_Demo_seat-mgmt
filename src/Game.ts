@@ -14,6 +14,8 @@ import { Renderer } from './engine/Renderer.js';
 import { Camera } from './engine/Camera.js';
 import { Arena } from './engine/Arena.js';
 import { Player } from './engine/Player.js';
+import { Weapon } from './engine/Weapon.js';
+import type { Object3D } from 'three';
 
 export interface GameOptions {
   /** 渲染器实例，默认创建新实例。 */
@@ -22,6 +24,10 @@ export interface GameOptions {
   camera?: Camera;
   /** 竞技场场景实例，默认基于 renderer.scene 创建。 */
   arena?: Arena;
+  /** 可命中目标列表，供武器射线检测使用（后续 EnemyManager 接入时传入）。 */
+  targets?: Object3D[];
+  /** 武器系统实例，默认基于 camera 与 renderer.scene 创建。 */
+  weapon?: Weapon;
   /** 玩家控制器实例，默认基于 camera 创建。 */
   player?: Player;
 }
@@ -42,6 +48,8 @@ export class Game {
   readonly arena: Arena;
   /** 玩家控制器，负责第一人称视角移动与鼠标控制。 */
   readonly player: Player;
+  /** 武器系统，负责开火、射线检测、弹药与换弹。 */
+  readonly weapon: Weapon;
   private readonly clock: Clock;
   private animationId: number | null = null;
   private running = false;
@@ -55,6 +63,14 @@ export class Game {
     this.player = options.player ?? new Player(this.camera.camera, {
       position: [0, 1.7, 0],
     });
+    // 将相机加入场景，使挂载在其上的武器视图模型被渲染
+    this.renderer.scene.add(this.camera.camera);
+    // Weapon 接管相机前方的武器视图模型与开火逻辑
+    this.weapon = options.weapon ?? new Weapon(
+      this.camera.camera,
+      this.renderer.scene,
+      { targets: options.targets ?? [] },
+    );
     this.clock = new Clock();
   }
 
@@ -76,10 +92,11 @@ export class Game {
     this.clock.stop();
   }
 
-    /** 每帧逻辑更新。后续需求在此扩展（敌人、武器等）。 */
+  /** 每帧逻辑更新。后续需求在此扩展（敌人、武器等）。 */
   update(delta: number): void {
     this.arena.update(delta);
-  this.player.update(delta);
+    this.player.update(delta);
+    this.weapon.update(delta);
   }
 
   /** 每帧渲染。 */
@@ -99,9 +116,10 @@ export class Game {
   /** 释放所有资源并停止循环。 */
   dispose(): void {
     this.stop();
+    this.weapon.dispose();
     this.player.dispose();
     this.arena.dispose(this.renderer.scene);
     this.renderer.dispose();
-  this.camera.dispose();
+    this.camera.dispose();
   }
 }
