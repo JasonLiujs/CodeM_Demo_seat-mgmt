@@ -53,9 +53,6 @@ const MAX_RAY_DISTANCE = 200;
 /** 枪口火光持续时间（毫秒）。 */
 const MUZZLE_FLASH_DURATION_MS = 50;
 
-/** 准星 DOM 元素 ID。 */
-const CROSSHAIR_ID = 'weapon-crosshair';
-
 /** 换弹提示 DOM 元素 ID。 */
 const RELOAD_HINT_ID = 'weapon-reload-hint';
 
@@ -188,8 +185,7 @@ export class Weapon {
     this.muzzleFlash.position.set(0.15, -0.12, -0.85);
     this.weaponGroup.add(this.muzzleFlash);
 
-    // 创建 UI 元素（准星 + 换弹提示）
-    this.createCrosshair();
+    // 创建 UI 元素：换弹提示（准星由 HUD 统一负责）
     this.createReloadHint();
 
     // 绑定事件
@@ -300,9 +296,8 @@ export class Weapon {
     this.muzzleMaterial.dispose();
     this.muzzleFlash.geometry.dispose();
 
-    this.removeCrosshair();
     this.removeReloadHint();
-  }
+    }
 
   // ===== 内部方法 =====
 
@@ -391,40 +386,7 @@ export class Weapon {
 
   // ===== UI 元素 =====
 
-  /** 创建准星 DOM 元素。 */
-  private createCrosshair(): void {
-    if (document.getElementById(CROSSHAIR_ID)) return;
-    const el = document.createElement('div');
-    el.id = CROSSHAIR_ID;
-    el.style.cssText = [
-      'position:fixed',
-      'top:50%',
-      'left:50%',
-      'width:20px',
-      'height:20px',
-      'margin-left:-10px',
-      'margin-top:-10px',
-      'pointer-events:none',
-      'z-index:1000',
-    ].join(';');
-
-    // 准星由 4 条线组成（十字）
-    const lineStyle = 'position:absolute;background:rgba(255,255,255,0.8);';
-    el.innerHTML = [
-      `<span style="${lineStyle}left:9px;top:0;width:2px;height:8px;"></span>`,
-      `<span style="${lineStyle}left:9px;top:12px;width:2px;height:8px;"></span>`,
-      `<span style="${lineStyle}left:0;top:9px;width:8px;height:2px;"></span>`,
-      `<span style="${lineStyle}left:12px;top:9px;width:8px;height:2px;"></span>`,
-    ].join('');
-    document.body.appendChild(el);
-  }
-
-  /** 移除准星。 */
-  private removeCrosshair(): void {
-    document.getElementById(CROSSHAIR_ID)?.remove();
-  }
-
-  /** 创建换弹提示 DOM 元素（默认隐藏）。 */
+  /** 创建换弹提示 DOM 元素（默认隐藏）。准星由 HUD 统一负责，不在此创建。 */
   private createReloadHint(): void {
     if (document.getElementById(RELOAD_HINT_ID)) return;
     const el = document.createElement('div');

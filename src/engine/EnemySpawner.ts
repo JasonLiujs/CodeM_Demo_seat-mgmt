@@ -96,6 +96,11 @@ export class EnemySpawner {
   onWaveChange: ((wave: number) => void) | null = null;
   /** 击杀回调。 */
   onKill: ((enemy: Enemy) => void) | null = null;
+  /**
+   * 敌人接触玩家伤害回调：每个新生成的敌人创建后注入其 onContactPlayer，
+   * 供 GameState 扣减玩家 HP。回调签名 (damage: number) => void。
+   */
+  onEnemyContactPlayer: ((damage: number) => void) | null = null;
 
   constructor(scene: Scene, options: EnemySpawnerOptions = {}) {
     this.scene = scene;
@@ -179,6 +184,10 @@ export class EnemySpawner {
       this.totalKills++;
       this.onKill?.(e);
     };
+    // 敌人接触玩家时转发伤害回调（供 GameState 扣 HP）
+    if (this.onEnemyContactPlayer) {
+      enemy.onContactPlayer = this.onEnemyContactPlayer;
+    }
 
     this.enemies.push(enemy);
   }

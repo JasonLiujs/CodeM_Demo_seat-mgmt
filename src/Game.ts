@@ -16,9 +16,14 @@ import { Arena } from './engine/Arena.js';
 import { Player } from './engine/Player.js';
 import { Weapon } from './engine/Weapon.js';
 import { EnemySpawner } from './engine/EnemySpawner.js';
+import { GameState } from './engine/GameState.js';
+import { HUD } from './engine/HUD.js';
 import type { Object3D } from 'three';
 
-export interface GameOptions {
+  /** 武器单发伤害（与既有 weapon.onHit 逻辑一致）。 */
+  const WEAPON_DAMAGE = 25;
+
+  export interface GameOptions {
   /** 渲染器实例，默认创建新实例。 */
   renderer?: Renderer;
   /** 相机实例，默认创建新实例。 */
@@ -26,13 +31,17 @@ export interface GameOptions {
   /** 竞技场场景实例，默认基于 renderer.scene 创建。 */
   arena?: Arena;
   /** 可命中目标列表，供武器射线检测使用（后续 EnemyManager 接入时传入）。 */
-  targets?: Object3D[];
+targets?: Object3D[];
   /** 武器系统实例，默认基于 camera 与 renderer.scene 创建。 */
-  weapon?: Weapon;
+weapon?: Weapon;
   /** 玩家控制器实例，默认基于 camera 创建。 */
   player?: Player;
-/** 敌人波次生成器实例，默认基于 renderer.scene 创建。 */
+  /** 敌人波次生成器实例，默认基于 renderer.scene 创建。 */
   enemySpawner?: EnemySpawner;
+  /** 游戏状态管理器实例，默认创建新实例（初始 HP 100）。 */
+  gameState?: GameState;
+  /** HUD 界面实例，默认创建新实例。 */
+  hud?: HUD;
 }
 
 /**
@@ -55,6 +64,10 @@ export class Game {
   readonly weapon: Weapon;
   /** 敌人波次生成器，负责敌人创建、波次推进与清理。 */
   readonly enemySpawner: EnemySpawner;
+  /** 游戏状态管理器，集中管理 HP/波次/弹药/击杀/GameOver。 */
+  readonly gameState: GameState;
+  /** HUD 界面，DOM 覆盖层显示血量/波次/弹药/击杀。 */
+  readonly hud: HUD;
   private readonly clock: Clock;
   private animationId: number | null = null;
   private running = false;
@@ -78,19 +91,42 @@ export class Game {
     );
     // EnemySpawner 管理波次敌人生成
     this.enemySpawner = options.enemySpawner ?? new EnemySpawner(this.renderer.scene);
-    // 将武器射线目标接入敌人 mesh 列表
+    // GameState 集中管理玩家 HP、波次、弹药、击杀数
+    this.gameState = options.gameState ?? new GameState({ maxHp: 100 });
+    // HUD 用 DOM 覆盖层显示状态，订阅 GameState 变化刷新
+    this.hud = options.hud ?? new HUD();
+      this.gameState.onStateChange = (snap) => this.hud.update(snap);
+      this.gameState.onGameOver = () => this.hud.showGameOver();
+
+      // 将武器射线目标接入敌人 mesh 列表
     this.weapon.setTargets(this.enemySpawner.getTargets());
-    // 武器命中时，通过 mesh.userData.enemyRef 找到 Enemy 实例并扣血
+    // 武器命中时：通过 mesh.userData.enemyRef 找到 Enemy 实例并扣血；
+    // 若敌人因此死亡，累计击杀数
     this.weapon.onHit = (object) => {
-      const enemyRef = object.userData.enemyRef;
+  const enemyRef = object.userData.enemyRef;
       if (enemyRef && typeof enemyRef.takeDamage === 'function') {
-        enemyRef.takeDamage(25);
+        const killed = enemyRef.takeDamage(WEAPON_DAMAGE);
+        if (killed) {
+          this.gameState.addKill();
+        }
       }
     };
-    // 敌人接触玩家时，对玩家造成伤害（通过 health 回调暴露，后续 GameState 接入）
-    // 当前仅暴露事件，实际扣血由 Player/GameState 后续需求实现
+    // 弹药状态变化时同步到 GameState（HUD 通过 onStateChange 刷新）
+    this.weapon.onAmmoChange = (ammo) => {
+      this.gameState.setAmmo(
+        ammo.magazine,
+        ammo.magazineSize,
+        ammo.reloading,
+        ammo.reloadProgress,
+      );
+    };
+    // 波次变化同步到 GameState
+    this.enemySpawner.onWaveChange = (wave) => this.gameState.setWave(wave);
+      // 敌人接触玩家时扣减玩家 HP（由 Enemy 触发 onContactPlayer 回调）
+    this.enemySpawner.onEnemyContactPlayer = (damage) =>
+    this.gameState.takeDamage(damage);
     this.clock = new Clock();
-  }
+    }
 
   /** 启动主循环。幂等：已运行时重复调用无副作用。 */
   start(): void {
@@ -144,5 +180,6 @@ export class Game {
     this.arena.dispose(this.renderer.scene);
     this.renderer.dispose();
   this.camera.dispose();
+  this.hud.dispose();
   }
 }
