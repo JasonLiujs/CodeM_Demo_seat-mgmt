@@ -15,6 +15,7 @@ import { Camera } from './engine/Camera.js';
 import { Arena } from './engine/Arena.js';
 import { Player } from './engine/Player.js';
 import { Weapon } from './engine/Weapon.js';
+import { EnemySpawner } from './engine/EnemySpawner.js';
 import type { Object3D } from 'three';
 
 export interface GameOptions {
@@ -30,6 +31,8 @@ export interface GameOptions {
   weapon?: Weapon;
   /** 玩家控制器实例，默认基于 camera 创建。 */
   player?: Player;
+/** 敌人波次生成器实例，默认基于 renderer.scene 创建。 */
+  enemySpawner?: EnemySpawner;
 }
 
 /**
@@ -50,6 +53,8 @@ export class Game {
   readonly player: Player;
   /** 武器系统，负责开火、射线检测、弹药与换弹。 */
   readonly weapon: Weapon;
+  /** 敌人波次生成器，负责敌人创建、波次推进与清理。 */
+  readonly enemySpawner: EnemySpawner;
   private readonly clock: Clock;
   private animationId: number | null = null;
   private running = false;
@@ -71,6 +76,19 @@ export class Game {
       this.renderer.scene,
       { targets: options.targets ?? [] },
     );
+    // EnemySpawner 管理波次敌人生成
+    this.enemySpawner = options.enemySpawner ?? new EnemySpawner(this.renderer.scene);
+    // 将武器射线目标接入敌人 mesh 列表
+    this.weapon.setTargets(this.enemySpawner.getTargets());
+    // 武器命中时，通过 mesh.userData.enemyRef 找到 Enemy 实例并扣血
+    this.weapon.onHit = (object) => {
+      const enemyRef = object.userData.enemyRef;
+      if (enemyRef && typeof enemyRef.takeDamage === 'function') {
+        enemyRef.takeDamage(25);
+      }
+    };
+    // 敌人接触玩家时，对玩家造成伤害（通过 health 回调暴露，后续 GameState 接入）
+    // 当前仅暴露事件，实际扣血由 Player/GameState 后续需求实现
     this.clock = new Clock();
   }
 
@@ -96,6 +114,10 @@ export class Game {
   update(delta: number): void {
     this.arena.update(delta);
     this.player.update(delta);
+    // 敌人波次更新：移动、生成、清理
+  this.enemySpawner.update(delta, this.player.getPosition());
+    // 同步武器射线目标（敌人列表会随死亡/新生变化）
+    this.weapon.setTargets(this.enemySpawner.getTargets());
     this.weapon.update(delta);
   }
 
@@ -117,9 +139,10 @@ export class Game {
   dispose(): void {
     this.stop();
     this.weapon.dispose();
+    this.enemySpawner.dispose();
     this.player.dispose();
     this.arena.dispose(this.renderer.scene);
     this.renderer.dispose();
-    this.camera.dispose();
+  this.camera.dispose();
   }
 }
