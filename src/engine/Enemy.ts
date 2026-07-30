@@ -45,6 +45,12 @@ const CONTACT_COOLDOWN_MS = 800;
 /** 敌人基础移动速度（单位/秒）。 */
 const BASE_SPEED = 2.5;
 
+/** 受击闪烁持续时长（秒）。 */
+const HIT_FLASH_DURATION = 0.15;
+
+/** 受击闪烁时的发光强度。 */
+const HIT_FLASH_EMISSIVE_INTENSITY = 4;
+
 export interface EnemyOptions {
   /** 初始位置。 */
   position: [number, number, number];
@@ -86,6 +92,21 @@ export class Enemy {
   /** 上次接触伤害时间戳（毫秒）。 */
   private lastContactTime = 0;
 
+  /** 受击闪烁剩余时间（秒），<=0 表示不闪烁。 */
+  private hitFlashRemaining = 0;
+
+  /** 受击闪烁总时长（秒），用于计算插值。 */
+  private readonly hitFlashDuration: number;
+
+  /** 受击闪烁时叠加的发光强度。 */
+  private readonly hitFlashEmissiveIntensity: number;
+
+  /** 原始 emissive 颜色（闪烁恢复用）。 */
+  private readonly baseEmissive: number;
+
+  /** 原始 emissiveIntensity（闪烁恢复用）。 */
+  private readonly baseEmissiveIntensity: number;
+
   /** 接触伤害回调：敌人接触玩家时触发，供 Player 扣血。 */
   onContactPlayer: ((damage: number) => void) | null = null;
 
@@ -109,12 +130,18 @@ export class Enemy {
       options.position[2],
     );
 
-    this.geometry = new SphereGeometry(ENEMY_RADIUS, 16, 12);
+    this.baseEmissive = options.color ?? 0xcc3333;
+    this.baseEmissiveIntensity = 1;
+    this.hitFlashDuration = HIT_FLASH_DURATION;
+    this.hitFlashEmissiveIntensity = HIT_FLASH_EMISSIVE_INTENSITY;
+
+    this.geometry = new SphereGeometry(ENEMY_RADIUS, 12, 8);
     this.material = new MeshStandardMaterial({
       color: options.color ?? 0xcc3333,
       roughness: 0.5,
       metalness: 0.2,
       emissive: 0x330000,
+      emissiveIntensity: this.baseEmissiveIntensity,
     });
     this.mesh = new Mesh(this.geometry, this.material);
     this.mesh.position.copy(this.position);
@@ -161,6 +188,9 @@ export class Enemy {
         this.onContactPlayer?.(CONTACT_DAMAGE);
       }
     }
+
+    // 3. 受击闪烁衰减
+    this.updateHitFlash(delta);
   }
 
   /**
@@ -171,12 +201,13 @@ export class Enemy {
   takeDamage(amount: number): boolean {
     if (this.dead) return false;
     this.health -= amount;
-    if (this.health <= 0) {
+    this.triggerHitFlash();
+      if (this.health <= 0) {
       this.health = 0;
       this.die();
-      return true;
+    return true;
     }
-    return false;
+  return false;
   }
 
   /** 是否已死亡。 */
@@ -197,6 +228,30 @@ export class Enemy {
   /** 返回 mesh（供 weapon targets 列表）。 */
   getMesh(): Mesh {
     return this.mesh;
+  }
+
+  /** 触发受击闪烁：重置闪烁计时器并立即点亮材质。 */
+  private triggerHitFlash(): void {
+    this.hitFlashRemaining = this.hitFlashDuration;
+    this.material.emissive.setHex(0xff3300);
+    this.material.emissiveIntensity = this.hitFlashEmissiveIntensity;
+  }
+
+  /** 每帧衰减受击闪烁，恢复到基础 emissive。 */
+  private updateHitFlash(delta: number): void {
+    if (this.hitFlashRemaining <= 0) return;
+    this.hitFlashRemaining -= delta;
+    if (this.hitFlashRemaining <= 0) {
+      this.hitFlashRemaining = 0;
+      this.material.emissive.setHex(this.baseEmissive);
+      this.material.emissiveIntensity = this.baseEmissiveIntensity;
+      return;
+    }
+    // 按剩余比例衰减发光强度，实现平滑闪烁
+    const t = this.hitFlashRemaining / this.hitFlashDuration;
+    this.material.emissiveIntensity =
+      this.baseEmissiveIntensity +
+      (this.hitFlashEmissiveIntensity - this.baseEmissiveIntensity) * t;
   }
 
   /** 死亡处理：标记死亡并触发回调。 */

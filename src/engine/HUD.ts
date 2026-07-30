@@ -43,8 +43,14 @@ const HUD_GAMEOVER_ID = 'hud-gameover';
 /** 准星 ID。 */
 const HUD_CROSSHAIR_ID = 'hud-crosshair';
 
+/** 命中反馈准星元素 ID。 */
+const HUD_CROSSHAIR_HIT_ID = 'hud-crosshair-hit';
+
 /** HP 低于此百分比时血量条变红。 */
 const LOW_HP_THRESHOLD = 0.3;
+
+/** 命中反馈持续时长（毫秒）。 */
+const CROSSHAIR_HIT_DURATION_MS = 120;
 
 /**
  * HUD 覆盖层：用 DOM 元素显示游戏状态。
@@ -72,6 +78,12 @@ export class HUD {
   /** GameOver 覆盖层。 */
   private readonly gameOverEl: HTMLDivElement;
 
+  /** 命中反馈准星元素（覆盖在准星上，命中时短暂显示）。 */
+  private readonly crosshairHit: HTMLDivElement;
+
+  /** 命中反馈剩余显示时间（毫秒），<=0 表示不显示。 */
+  private hitFlashRemaining = 0;
+
   /** 已创建的元素列表（dispose 用）。 */
   private readonly elements: HTMLElement[] = [];
 
@@ -89,6 +101,27 @@ export class HUD {
 
     // 准星
     this.elements.push(this.createCrosshair());
+
+// 命中反馈准星（覆盖在准星上，命中时短暂显示红色十字）
+this.crosshairHit = this.createDiv(HUD_CROSSHAIR_HIT_ID, [
+  'position:fixed',
+  'top:50%',
+  'left:50%',
+  'width:24px',
+  'height:24px',
+  'margin-left:-12px',
+  'margin-top:-12px',
+  'display:none',
+  'pointer-events:none',
+]);
+const hitLineStyle = 'position:absolute;background:rgba(255,60,60,0.95);';
+this.crosshairHit.innerHTML = [
+  `<span style="${hitLineStyle}left:11px;top:0;width:2px;height:10px;"></span>`,
+  `<span style="${hitLineStyle}left:11px;top:14px;width:2px;height:10px;"></span>`,
+  `<span style="${hitLineStyle}left:0;top:11px;width:10px;height:2px;"></span>`,
+  `<span style="${hitLineStyle}left:14px;top:11px;width:10px;height:2px;"></span>`,
+].join('');
+this.elements.push(this.crosshairHit);
 
     // 左下血量条
     const hpContainer = this.createDiv(HUD_HP_ID, [
@@ -248,6 +281,29 @@ export class HUD {
     this.gameOverEl.style.display = 'none';
   }
 
+  /**
+   * 触发命中反馈：准星短暂变红。
+   * 由 Weapon.onHit 命中敌人时调用。
+   */
+  showHitFeedback(): void {
+    this.crosshairHit.style.display = 'block';
+    this.hitFlashRemaining = CROSSHAIR_HIT_DURATION_MS;
+  }
+
+  /**
+   * 每帧更新命中反馈衰减。由 Game.update 调用。
+   * @param delta 帧间隔（秒）
+   */
+  updateHitFeedback(delta: number): void {
+    if (this.hitFlashRemaining <= 0) return;
+    const elapsed = delta * 1000;
+    this.hitFlashRemaining -= elapsed;
+    if (this.hitFlashRemaining <= 0) {
+    this.hitFlashRemaining = 0;
+      this.crosshairHit.style.display = 'none';
+      }
+    }
+
   /** 移除所有 DOM 元素。 */
   dispose(): void {
     for (const el of this.elements) {
@@ -303,5 +359,7 @@ export {
   HUD_RELOAD_ID,
   HUD_GAMEOVER_ID,
   HUD_CROSSHAIR_ID,
+  HUD_CROSSHAIR_HIT_ID,
   LOW_HP_THRESHOLD,
+  CROSSHAIR_HIT_DURATION_MS,
 };

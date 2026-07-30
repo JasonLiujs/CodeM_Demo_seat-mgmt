@@ -117,7 +117,7 @@ export class Game {
       // 将武器射线目标接入敌人 mesh 列表
     this.weapon.setTargets(this.enemySpawner.getTargets());
     // 武器命中时：通过 mesh.userData.enemyRef 找到 Enemy 实例并扣血；
-    // 若敌人因此死亡，累计击杀数
+    // 若敌人因此死亡，累计击杀数；同时触发准星命中反馈
     this.weapon.onHit = (object) => {
   const enemyRef = object.userData.enemyRef;
       if (enemyRef && typeof enemyRef.takeDamage === 'function') {
@@ -125,8 +125,9 @@ export class Game {
         if (killed) {
           this.gameState.addKill();
         }
-      }
-    };
+      this.hud.showHitFeedback();
+    }
+      };
     // 弹药状态变化时同步到 GameState（HUD 通过 onStateChange 刷新）
     this.weapon.onAmmoChange = (ammo) => {
       this.gameState.setAmmo(
@@ -177,6 +178,8 @@ export class Game {
   // 同步武器射线目标（敌人列表会随死亡/新生变化）
     this.weapon.setTargets(this.enemySpawner.getTargets());
     this.weapon.update(delta);
+  // HUD 命中反馈衰减
+    this.hud.updateHitFeedback(delta);
   }
 
   /** 每帧渲染。 */

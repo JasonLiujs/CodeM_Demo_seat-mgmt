@@ -35,8 +35,10 @@ export class Renderer {
     this.renderer = new WebGLRenderer({
       canvas: this.canvas,
       antialias: true,
+    powerPreference: 'high-performance',
     });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    // 限制像素比上限为 2，避免高 DPI 屏过度渲染拖累性能（60fps 目标）
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
 
     this.scene = new Scene();
