@@ -258,12 +258,14 @@ export class HUD {
 
   // ===== 内部方法 =====
 
-  /** 创建带样式的 div。 */
+  /** 创建带样式的 div。root 已初始化时挂载到 root，否则仅创建（用于 root 自身）。 */
   private createDiv(id: string, styles: string[]): HTMLDivElement {
     const el = document.createElement('div');
     el.id = id;
     el.style.cssText = styles.join(';');
-    this.root.appendChild(el);
+    if (this.root) {
+      this.root.appendChild(el);
+    }
     return el;
   }
 
