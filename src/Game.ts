@@ -13,6 +13,7 @@ import { Clock } from 'three';
 import { Renderer } from './engine/Renderer.js';
 import { Camera } from './engine/Camera.js';
 import { Arena } from './engine/Arena.js';
+import { Player } from './engine/Player.js';
 
 export interface GameOptions {
   /** 渲染器实例，默认创建新实例。 */
@@ -21,6 +22,8 @@ export interface GameOptions {
   camera?: Camera;
   /** 竞技场场景实例，默认基于 renderer.scene 创建。 */
   arena?: Arena;
+  /** 玩家控制器实例，默认基于 camera 创建。 */
+  player?: Player;
 }
 
 /**
@@ -37,6 +40,8 @@ export class Game {
   readonly camera: Camera;
   /** 竞技场场景，包含地板/围墙/掩体/光照。 */
   readonly arena: Arena;
+  /** 玩家控制器，负责第一人称视角移动与鼠标控制。 */
+  readonly player: Player;
   private readonly clock: Clock;
   private animationId: number | null = null;
   private running = false;
@@ -46,6 +51,10 @@ export class Game {
     // 相机默认置于竞技场内、略高俯视，保证视野合理（验收标准）
     this.camera = options.camera ?? new Camera({ position: [0, 6, 16] });
     this.arena = options.arena ?? new Arena(this.renderer.scene);
+    // Player 接管相机，初始位置为玩家眼睛高度
+    this.player = options.player ?? new Player(this.camera.camera, {
+      position: [0, 1.7, 0],
+    });
     this.clock = new Clock();
   }
 
@@ -67,9 +76,10 @@ export class Game {
     this.clock.stop();
   }
 
-    /** 每帧逻辑更新。后续需求在此扩展（玩家、敌人、武器等）。 */
+    /** 每帧逻辑更新。后续需求在此扩展（敌人、武器等）。 */
   update(delta: number): void {
     this.arena.update(delta);
+  this.player.update(delta);
   }
 
   /** 每帧渲染。 */
@@ -89,8 +99,9 @@ export class Game {
   /** 释放所有资源并停止循环。 */
   dispose(): void {
     this.stop();
+    this.player.dispose();
     this.arena.dispose(this.renderer.scene);
     this.renderer.dispose();
-    this.camera.dispose();
+  this.camera.dispose();
   }
 }

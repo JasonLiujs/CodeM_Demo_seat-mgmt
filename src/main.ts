@@ -10,6 +10,11 @@ import { Game } from './Game.js';
 const game = new Game();
 game.start();
 
+// 点击页面请求 Pointer Lock，锁定后可用鼠标环视、WASD 移动
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', () => game.player.lock());
+}
+
 // 暴露到 window 便于开发调试与后续模块接入（生产环境可移除）
 if (typeof window !== 'undefined') {
   (window as unknown as { __game: Game }).__game = game;
