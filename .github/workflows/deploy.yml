@@ -102,6 +102,11 @@ jobs:
             set -e
             cd ${{ env.APP_DIR }}
 
+            # Docker 镜像/容器名必须小写；TASK_NAME 统一转小写兜底
+            TASK_NAME=$(echo "${TASK_NAME}" | tr '[:upper:]' '[:lower:]')
+            IMAGE_NAME=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
+            CONTAINER_NAME=$(echo "${CONTAINER_NAME}" | tr '[:upper:]' '[:lower:]')
+
             PREV_TAG=$(docker inspect --format='{{index .Config.Labels "deploy.tag"}}' ${CONTAINER_NAME} 2>/dev/null || echo "")
             echo "previous tag: ${PREV_TAG:-none}"
 
