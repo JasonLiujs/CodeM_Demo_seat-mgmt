@@ -265,11 +265,8 @@ this.elements.push(this.crosshairHit);
     // 击杀
     this.killsText.textContent = `击杀: ${snapshot.kills}`;
 
-    // GameOver
-    if (snapshot.gameOver) {
-      this.showGameOver();
+    // GameOver 不再由 HUD 处理，结算面板由 MenuOverlay 统一负责
     }
-  }
 
   /** 显示 GameOver 覆盖层。 */
   showGameOver(): void {

@@ -104,8 +104,8 @@ export class Game {
       this.menu = options.menu ?? new MenuOverlay();
       this.gameState.onStateChange = (snap) => this.hud.update(snap);
       // GameOver 时显示结算面板（存活波次 + 击杀数）并退出 Pointer Lock
-      this.gameState.onGameOver = () => {
-        this.hud.showGameOver();
+      // 结算面板由 MenuOverlay 统一负责，HUD 不再重复显示 GAME OVER
+        this.gameState.onGameOver = () => {
         this.menu.showGameOver(this.gameState.getSnapshot());
         this.exitPointerLock();
       };
@@ -153,7 +153,8 @@ export class Game {
     if (this.running) return;
     this.running = true;
     this.clock.start();
-    this.loop();
+    this.menu.showMainMenu();
+  this.loop();
   }
 
   /** 停止主循环。 */
@@ -202,21 +203,19 @@ export class Game {
    */
   startGame(): void {
     this.menu.hide();
-    this.hud.hideGameOver();
     this.player.lock();
-  }
+    }
 
   /**
    * 重新开始：重置 GameState，隐藏结算面板，重置敌人与弹药，重新请求 Pointer Lock。
    */
   restart(): void {
     this.gameState.reset();
-    this.hud.hideGameOver();
     this.menu.hide();
     this.enemySpawner.reset();
     this.weapon.refill();
     this.player.lock();
-  }
+    }
 
   /** 退出 Pointer Lock（GameOver 时调用，释放鼠标供结算面板交互）。 */
   private exitPointerLock(): void {
