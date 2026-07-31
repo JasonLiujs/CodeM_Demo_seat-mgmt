@@ -5,9 +5,15 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# 任务身份变量：在仓库 Settings → Secrets and variables → Actions → Variables 配置。
+# 未配置时回退到从仓库名推导（CodeM_Demo_fps → fps），保证模板开箱即用。
+#   TASK_NAME    任务短名（如 fps）——决定子域名、容器名、部署目录、镜像名
+#   SITE_DOMAIN  完整域名（如 fps.meegodemo.com）
+#   APP_PORT     应用容器内部端口（默认 8080，容器内固定，主机侧不暴露）
 env:
-  APP_DIR: /opt/codem-demo
-  IMAGE_NAME: codem-demo
+  TASK_NAME: ${{ vars.TASK_NAME || github.event.repository.name }}
+  SITE_DOMAIN: ${{ vars.SITE_DOMAIN || format('{0}.meegodemo.com', vars.TASK_NAME || github.event.repository.name) }}
+  APP_PORT: ${{ vars.APP_PORT || '8080' }}
 
 jobs:
   test:
@@ -38,21 +44,25 @@ jobs:
         if: hashFiles('requirements.txt') != ''
 
       - name: Docker build check
-        run: docker build -t ${{ env.IMAGE_NAME }}:ci-check .
+        run: docker build -t codem-ci-check:${{ github.sha }} .
 
   deploy:
     needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      APP_DIR: /opt/apps/${{ vars.TASK_NAME || github.event.repository.name }}
+      IMAGE_NAME: codem-${{ vars.TASK_NAME || github.event.repository.name }}
+      CONTAINER_NAME: codem-${{ vars.TASK_NAME || github.event.repository.name }}-app
     steps:
       - uses: actions/checkout@v4
 
       - name: Pack repository
         run: |
           tar --exclude='./.git' --exclude='./node_modules' --exclude='./dist' \
-            -czf ../codem-demo-src.tar.gz .
-          mv ../codem-demo-src.tar.gz .
+            -czf ../codem-src.tar.gz .
+          mv ../codem-src.tar.gz .
 
       - name: Copy tarball to server
         uses: appleboy/scp-action@v0.1.7
@@ -60,7 +70,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "codem-demo-src.tar.gz"
+          source: "codem-src.tar.gz"
           strip_components: 0
           target: ${{ env.APP_DIR }}
           overwrite: true
@@ -74,10 +84,10 @@ jobs:
           envs: APP_DIR
           script: |
             set -e
+            mkdir -p ${{ env.APP_DIR }}
             cd ${{ env.APP_DIR }}
-            tar -xzf codem-demo-src.tar.gz
-            rm -f codem-demo-src.tar.gz
-            rm -rf github
+            tar -xzf codem-src.tar.gz
+            rm -f codem-src.tar.gz
 
       - name: Build, deploy, health-check, rollback on failure
         uses: appleboy/ssh-action@v1.2.0
@@ -87,36 +97,55 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: IMAGE_TAG,IMAGE_NAME,APP_DIR
+          envs: IMAGE_TAG,IMAGE_NAME,APP_DIR,CONTAINER_NAME,APP_PORT,TASK_NAME,SITE_DOMAIN
           script: |
             set -e
             cd ${{ env.APP_DIR }}
 
-            PREV_TAG=$(docker inspect --format='{{index .Config.Labels "deploy.tag"}}' ${IMAGE_NAME}-current 2>/dev/null || echo "")
+            PREV_TAG=$(docker inspect --format='{{index .Config.Labels "deploy.tag"}}' ${CONTAINER_NAME} 2>/dev/null || echo "")
             echo "previous tag: ${PREV_TAG:-none}"
 
             docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
             docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
 
-            IMAGE_TAG=${IMAGE_TAG} docker compose up -d --remove-orphans
+            IMAGE_TAG=${IMAGE_TAG} \
+            IMAGE_NAME=${IMAGE_NAME} \
+            CONTAINER_NAME=${CONTAINER_NAME} \
+            APP_PORT=${APP_PORT} \
+            docker compose up -d --remove-orphans
 
             echo "waiting for app health check..."
             ok=0
             for i in $(seq 1 10); do
-              if docker compose exec -T app wget -qO- http://127.0.0.1:8080/healthz 2>/dev/null | grep -q ok; then
+              if docker compose exec -T app wget -qO- http://127.0.0.1:${APP_PORT}/healthz 2>/dev/null | grep -q ok; then
                 ok=1; break
               fi
               sleep 3
             done
 
             if [ "$ok" = "1" ]; then
-              docker update --label-add deploy.tag=${IMAGE_TAG} $(docker compose ps -q app) 2>/dev/null || true
+              docker update --label-add deploy.tag=${IMAGE_TAG} ${CONTAINER_NAME} 2>/dev/null || true
               echo "deploy succeeded: ${IMAGE_TAG}"
+
+              # 注册 Caddy 站点（幂等覆盖），接入共享 Caddy 统一对外
+              cat > /opt/caddy/sites/${TASK_NAME}.caddy <<EOF
+            ${SITE_DOMAIN} {
+            	reverse_proxy ${CONTAINER_NAME}:${APP_PORT}
+            }
+            EOF
+              docker exec shared-caddy caddy reload --config /etc/caddy/Caddyfile --force 2>&1 || \
+                docker exec shared-caddy caddy reload --config /etc/caddy/Caddyfile 2>&1 || true
+              echo "site registered: https://${SITE_DOMAIN}"
+
               docker image prune -f
             else
               echo "health check FAILED, rolling back..."
               if [ -n "$PREV_TAG" ]; then
-                IMAGE_TAG=${PREV_TAG} docker compose up -d
+                IMAGE_TAG=${PREV_TAG} \
+                IMAGE_NAME=${IMAGE_NAME} \
+                CONTAINER_NAME=${CONTAINER_NAME} \
+                APP_PORT=${APP_PORT} \
+                docker compose up -d
                 echo "rolled back to ${PREV_TAG}"
               else
                 docker compose down
@@ -131,12 +160,15 @@ jobs:
         with:
           script: |
             const sha = context.sha.substring(0, 7);
+            const domain = process.env.SITE_DOMAIN;
             await github.rest.repos.createCommitComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
-              body: `✅ 部署成功\n\n- 提交: ${sha}\n- 服务: https://www.meegodemo.com\n- 健康检查: https://www.meegodemo.com/healthz\n- 时间: ${new Date().toISOString()}`
+              body: `✅ 部署成功\n\n- 提交: ${sha}\n- 服务: https://${domain}\n- 健康检查: https://${domain}/healthz\n- 时间: ${new Date().toISOString()}`
             });
+        env:
+          SITE_DOMAIN: ${{ env.SITE_DOMAIN }}
 
       - name: Notify deployment failure
         if: failure()

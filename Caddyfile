@@ -1,3 +1,0 @@
-www.meegodemo.com {
-	reverse_proxy app:8080
-}

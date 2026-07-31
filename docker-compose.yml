@@ -1,31 +1,25 @@
+# 应用 compose 模板：由流水线注入 IMAGE_NAME / CONTAINER_NAME / APP_PORT / IMAGE_TAG。
+# app 接入外部共享网络 caddy-net，由共享 Caddy 统一反向代理 + HTTPS。
+# 本地开发时可直接 docker compose up（变量取默认值），但不含 Caddy。
+
 services:
   app:
-    image: codem-demo:${IMAGE_TAG:-latest}
+    image: ${IMAGE_NAME:-codem-demo}:${IMAGE_TAG:-latest}
     build: .
+    container_name: ${CONTAINER_NAME:-codem-demo-app}
     restart: unless-stopped
     environment:
-      - PORT=8080
+      - PORT=${APP_PORT:-8080}
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:${APP_PORT:-8080}/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
+    networks:
+      - caddy-net
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      app:
-        condition: service_healthy
-
-volumes:
-  caddy_data:
-  caddy_config:
+networks:
+  caddy-net:
+    external: true
+    name: caddy-net
