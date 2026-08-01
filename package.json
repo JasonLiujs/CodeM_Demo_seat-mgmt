@@ -13,6 +13,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "cannon-es": "^0.20.0",
     "three": "^0.167.1"
   },
   "devDependencies": {
