@@ -1,17 +1,16 @@
 /**
- * 应用入口：创建 Game 实例并启动主循环。
+ * 应用入口：中立空模板。
  *
- * 启动后显示主菜单，玩家点击「开始游戏」后进入游戏（请求 Pointer Lock）。
- * 死亡后显示结算面板，点击「重新开始」重置游戏。
+ * 这里只做最小初始化（挂载点 + 渲染循环占位）。
+ * 具体项目需求在 src/ 下按需新增模块并在此处接入。
  */
-import { Game } from './Game.js';
 
-const game = new Game();
-game.start();
+const app = document.getElementById('app');
 
-// 暴露到 window 便于开发调试与后续模块接入（生产环境可移除）
-if (typeof window !== 'undefined') {
-  (window as unknown as { __game: Game }).__game = game;
+if (app) {
+  const el = document.createElement('p');
+  el.textContent = 'CodeM Demo — 空模板已就绪';
+  el.style.cssText =
+    'color:#9aa;display:flex;height:100vh;margin:0;align-items:center;justify-content:center;font-family:system-ui,sans-serif;';
+  app.appendChild(el);
 }
-
-export { game };

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
 
-// Vite 配置：Three.js 脚手架，开发服务器默认 0.0.0.0:5173
+// Vite 配置：中立工程模板，开发服务器默认 0.0.0.0:5173
 export default defineConfig({
   server: {
     host: '0.0.0.0',
