@@ -11,6 +11,7 @@ RUN npm install
 COPY tsconfig.json vite.config.ts index.html ./
 COPY src ./src
 COPY server.js ./
+COPY public ./public
 RUN npm run build
 
 # ---- 运行阶段：最小化镜像，仅托管构建产物 ----
