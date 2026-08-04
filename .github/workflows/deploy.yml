@@ -110,8 +110,8 @@ jobs:
             --exclude='./.git' \
             --exclude='./node_modules' \
             --exclude='./dist' \
-            --exclude='./codem-src.tar.gz' \
-            -czf codem-src.tar.gz .
+            -czf ../codem-src.tar.gz .
+          mv ../codem-src.tar.gz ./codem-src.tar.gz
 
       - name: Upload release to server
         uses: appleboy/scp-action@v1.0.0
