@@ -1,16 +1,23 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CodeM Demo</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CodeM 项目已就绪</title>
     <style>
-      html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; }
-      #app { width: 100vw; height: 100vh; display: block; }
+      :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+      body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: #0b1020; color: #eef2ff; }
+      main { width: min(38rem, calc(100% - 3rem)); padding: 2rem; border: 1px solid #29324d; border-radius: 1rem; background: #111831; }
+      h1 { margin-top: 0; }
+      p { line-height: 1.7; color: #b9c2dc; }
+      code { color: #8bd5ca; }
     </style>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <main>
+      <h1>CodeM 项目已就绪</h1>
+      <p>仓库、独立域名和自动发布流水线已经建立。</p>
+      <p>后续提交到 <code>main</code> 后，页面会自动更新，无需人工部署。</p>
+    </main>
   </body>
 </html>

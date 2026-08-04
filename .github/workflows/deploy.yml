@@ -3,187 +3,240 @@ name: Deploy
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
-# 任务身份变量：在仓库 Settings → Secrets and variables → Actions → Variables 配置。
-# 未配置时回退到从仓库名推导（CodeM_Demo_fps → fps），保证模板开箱即用。
-#   TASK_NAME    任务短名（如 fps）——决定子域名、容器名、部署目录、镜像名
-#   SITE_DOMAIN  完整域名（如 fps.meegodemo.com）
-#   APP_PORT     应用容器内部端口（默认 8080，容器内固定，主机侧不暴露）
+concurrency:
+  group: deploy-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  deployments: write
+
 env:
-  TASK_NAME: ${{ vars.TASK_NAME || github.event.repository.name }}
-  SITE_DOMAIN: ${{ vars.SITE_DOMAIN || format('{0}.meegodemo.com', vars.TASK_NAME || github.event.repository.name) }}
+  TASK_NAME: ${{ vars.TASK_NAME }}
+  SITE_DOMAIN: ${{ vars.SITE_DOMAIN }}
   APP_PORT: ${{ vars.APP_PORT || '8080' }}
 
 jobs:
   test:
+    name: Test and build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
-      - name: Node tests
+      - name: Install Node.js
         if: hashFiles('package.json') != ''
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
-      - run: npm ci || npm install
-        if: hashFiles('package.json') != ''
-      - run: npm run build
-        if: hashFiles('package.json') != ''
-      - run: npm test
-        if: hashFiles('package.json') != ''
 
-      - name: Python tests
+      - name: Test Node.js project
+        if: hashFiles('package.json') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f package-lock.json ]]; then npm ci; else npm install; fi
+          npm run build --if-present
+          npm test --if-present
+
+      - name: Install Python
         if: hashFiles('requirements.txt') != ''
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7.0.0
         with:
           python-version: '3.12'
-      - run: pip install -r requirements.txt
-        if: hashFiles('requirements.txt') != ''
-      - run: pytest
-        if: hashFiles('requirements.txt') != ''
 
-      - name: Docker build check
-        run: docker build -t codem-ci-check:${{ github.sha }} .
+      - name: Test Python project
+        if: hashFiles('requirements.txt') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements.txt
+          if [[ -d tests ]] || compgen -G 'test_*.py' >/dev/null; then pytest; fi
+
+      - name: Validate deployment contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f Dockerfile
+          test -f docker-compose.yml
+          docker compose config >/dev/null
+          docker build --tag "codem-ci-check:${GITHUB_SHA}" .
 
   deploy:
+    name: Deploy and verify HTTPS
+    if: github.event_name != 'pull_request' && github.repository != 'JasonLiujs/CodeM_Template'
     needs: test
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    timeout-minutes: 30
+    environment:
+      name: ${{ vars.TASK_NAME || 'production' }}
+      url: https://${{ vars.SITE_DOMAIN }}
     env:
-      APP_DIR: /opt/apps/${{ vars.TASK_NAME || github.event.repository.name }}
-      IMAGE_NAME: codem-${{ vars.TASK_NAME || github.event.repository.name }}
-      CONTAINER_NAME: codem-${{ vars.TASK_NAME || github.event.repository.name }}-app
+      APP_DIR: /opt/apps/${{ vars.TASK_NAME }}
+      IMAGE_NAME: codem-${{ vars.TASK_NAME }}
+      CONTAINER_NAME: codem-${{ vars.TASK_NAME }}-app
+      UPLOAD_DIR: /tmp/codem-upload-${{ github.run_id }}
+      IMAGE_TAG: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
-      - name: Pack repository
+      - name: Preflight deployment configuration
+        shell: bash
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          tar --exclude='./.git' --exclude='./node_modules' --exclude='./dist' \
-            -czf ../codem-src.tar.gz .
-          mv ../codem-src.tar.gz .
+          set -euo pipefail
+          for name in TASK_NAME SITE_DOMAIN APP_PORT SERVER_HOST SERVER_USER SSH_PRIVATE_KEY; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Required deployment setting is missing: ${name}"
+              exit 1
+            fi
+          done
+          [[ "$TASK_NAME" =~ ^[a-z0-9][a-z0-9-]{0,62}$ ]]
+          [[ "$SITE_DOMAIN" == "${TASK_NAME}.meegodemo.com" ]]
+          [[ "$APP_PORT" =~ ^[0-9]{2,5}$ ]]
 
-      - name: Copy tarball to server
-        uses: appleboy/scp-action@v0.1.7
+      - name: Pack immutable release
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar \
+            --exclude='./.git' \
+            --exclude='./node_modules' \
+            --exclude='./dist' \
+            --exclude='./codem-src.tar.gz' \
+            -czf codem-src.tar.gz .
+
+      - name: Upload release to server
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "codem-src.tar.gz"
-          strip_components: 0
-          target: ${{ env.APP_DIR }}
+          source: codem-src.tar.gz
+          target: ${{ env.UPLOAD_DIR }}
           overwrite: true
 
-      - name: Unpack source on server
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: APP_DIR
-          script: |
-            set -e
-            mkdir -p ${{ env.APP_DIR }}
-            cd ${{ env.APP_DIR }}
-            tar -xzf codem-src.tar.gz
-            rm -f codem-src.tar.gz
-
-      - name: Build, deploy, health-check, rollback on failure
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Activate release and register domain
+        uses: appleboy/ssh-action@v1.2.5
         env:
-          IMAGE_TAG: ${{ github.sha }}
+          TASK_NAME: ${{ env.TASK_NAME }}
+          SITE_DOMAIN: ${{ env.SITE_DOMAIN }}
+          APP_PORT: ${{ env.APP_PORT }}
+          APP_DIR: ${{ env.APP_DIR }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
+          UPLOAD_DIR: ${{ env.UPLOAD_DIR }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: IMAGE_TAG,IMAGE_NAME,APP_DIR,CONTAINER_NAME,APP_PORT,TASK_NAME,SITE_DOMAIN
+          envs: TASK_NAME,SITE_DOMAIN,APP_PORT,APP_DIR,IMAGE_NAME,CONTAINER_NAME,UPLOAD_DIR,IMAGE_TAG,GITHUB_RUN_ID
+          command_timeout: 20m
           script: |
-            set -e
-            cd ${{ env.APP_DIR }}
+            set -Eeuo pipefail
+            umask 077
 
-            # Docker 镜像/容器名必须小写；TASK_NAME 统一转小写兜底
-            TASK_NAME=$(echo "${TASK_NAME}" | tr '[:upper:]' '[:lower:]')
-            IMAGE_NAME=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
-            CONTAINER_NAME=$(echo "${CONTAINER_NAME}" | tr '[:upper:]' '[:lower:]')
+            [[ "$TASK_NAME" =~ ^[a-z0-9][a-z0-9-]{0,62}$ ]]
+            [[ "$SITE_DOMAIN" == "${TASK_NAME}.meegodemo.com" ]]
+            [[ "$APP_PORT" =~ ^[0-9]{2,5}$ ]]
 
-            PREV_TAG=$(docker inspect --format='{{index .Config.Labels "deploy.tag"}}' ${CONTAINER_NAME} 2>/dev/null || echo "")
-            echo "previous tag: ${PREV_TAG:-none}"
+            RELEASE_DIR="${APP_DIR}/releases/${IMAGE_TAG}"
+            PREV_RELEASE="$(readlink -f "${APP_DIR}/current" 2>/dev/null || true)"
+            PREV_IMAGE="$(cat "${APP_DIR}/.last-successful-image" 2>/dev/null || true)"
+            COMPOSE_PROJECT="codem-${TASK_NAME}"
 
-            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-            docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+            docker network inspect caddy-net >/dev/null
+            docker inspect shared-caddy >/dev/null
+            mkdir -p "$RELEASE_DIR"
+            tar -xzf "${UPLOAD_DIR}/codem-src.tar.gz" -C "$RELEASE_DIR"
+            rm -f "${UPLOAD_DIR}/codem-src.tar.gz"
+            test -f "${RELEASE_DIR}/Dockerfile"
+            test -f "${RELEASE_DIR}/docker-compose.yml"
 
-            IMAGE_TAG=${IMAGE_TAG} \
-            IMAGE_NAME=${IMAGE_NAME} \
-            CONTAINER_NAME=${CONTAINER_NAME} \
-            APP_PORT=${APP_PORT} \
-            docker compose up -d --remove-orphans
+            cd "$RELEASE_DIR"
+            docker build --tag "${IMAGE_NAME}:${IMAGE_TAG}" .
+            IMAGE_NAME="$IMAGE_NAME" IMAGE_TAG="$IMAGE_TAG" \
+              CONTAINER_NAME="$CONTAINER_NAME" APP_PORT="$APP_PORT" \
+              docker compose --project-name "$COMPOSE_PROJECT" up -d --remove-orphans
 
-            echo "waiting for app health check..."
-            ok=0
-            for i in $(seq 1 10); do
-              if docker compose exec -T app wget -qO- http://127.0.0.1:${APP_PORT}/healthz 2>/dev/null | grep -q ok; then
-                ok=1; break
+            healthy=0
+            for attempt in $(seq 1 30); do
+              if docker exec "$CONTAINER_NAME" \
+                wget -qO- "http://127.0.0.1:${APP_PORT}/healthz" 2>/dev/null | grep -q 'ok'; then
+                healthy=1
+                break
               fi
               sleep 3
             done
 
-            if [ "$ok" = "1" ]; then
-              docker update --label-add deploy.tag=${IMAGE_TAG} ${CONTAINER_NAME} 2>/dev/null || true
-              echo "deploy succeeded: ${IMAGE_TAG}"
-
-              # 注册 Caddy 站点（幂等覆盖），接入共享 Caddy 统一对外
-              cat > /opt/caddy/sites/${TASK_NAME}.caddy <<EOF
-            ${SITE_DOMAIN} {
-            	reverse_proxy ${CONTAINER_NAME}:${APP_PORT}
-            }
-            EOF
-              docker exec shared-caddy caddy reload --config /etc/caddy/Caddyfile --force 2>&1 || \
-                docker exec shared-caddy caddy reload --config /etc/caddy/Caddyfile 2>&1 || true
-              echo "site registered: https://${SITE_DOMAIN}"
-
-              docker image prune -f
-            else
-              echo "health check FAILED, rolling back..."
-              if [ -n "$PREV_TAG" ]; then
-                IMAGE_TAG=${PREV_TAG} \
-                IMAGE_NAME=${IMAGE_NAME} \
-                CONTAINER_NAME=${CONTAINER_NAME} \
-                APP_PORT=${APP_PORT} \
-                docker compose up -d
-                echo "rolled back to ${PREV_TAG}"
+            if [[ "$healthy" != 1 ]]; then
+              docker logs --tail 200 "$CONTAINER_NAME" 2>&1 || true
+              if [[ -n "$PREV_RELEASE" && -n "$PREV_IMAGE" && -f "$PREV_RELEASE/docker-compose.yml" ]]; then
+                PREV_IMAGE_NAME="${PREV_IMAGE%:*}"
+                PREV_IMAGE_TAG="${PREV_IMAGE##*:}"
+                IMAGE_NAME="$PREV_IMAGE_NAME" IMAGE_TAG="$PREV_IMAGE_TAG" \
+                  CONTAINER_NAME="$CONTAINER_NAME" APP_PORT="$APP_PORT" \
+                  docker compose --project-name "$COMPOSE_PROJECT" \
+                    --file "$PREV_RELEASE/docker-compose.yml" up -d --remove-orphans
+                echo "Rolled back to ${PREV_IMAGE}"
               else
-                docker compose down
-                echo "no previous version, service stopped"
+                docker compose --project-name "$COMPOSE_PROJECT" down || true
               fi
               exit 1
             fi
 
-      - name: Notify deployment success
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const sha = context.sha.substring(0, 7);
-            const domain = process.env.SITE_DOMAIN;
-            await github.rest.repos.createCommitComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: context.sha,
-              body: `✅ 部署成功\n\n- 提交: ${sha}\n- 服务: https://${domain}\n- 健康检查: https://${domain}/healthz\n- 时间: ${new Date().toISOString()}`
-            });
-        env:
-          SITE_DOMAIN: ${{ env.SITE_DOMAIN }}
+            ln -sfn "$RELEASE_DIR" "${APP_DIR}/current"
+            printf '%s\n' "${IMAGE_NAME}:${IMAGE_TAG}" > "${APP_DIR}/.last-successful-image"
 
-      - name: Notify deployment failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const sha = context.sha.substring(0, 7);
-            await github.rest.repos.createCommitComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: context.sha,
-              body: `❌ 部署失败\n\n- 提交: ${sha}\n- 日志: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n- 时间: ${new Date().toISOString()}`
-            });
+            SITE_FILE="/opt/caddy/sites/${TASK_NAME}.caddy"
+            SITE_TMP="${SITE_FILE}.tmp.${GITHUB_RUN_ID}"
+            SITE_BACKUP="${SITE_FILE}.bak.${GITHUB_RUN_ID}"
+            if [[ -f "$SITE_FILE" ]]; then cp "$SITE_FILE" "$SITE_BACKUP"; fi
+            cat > "$SITE_TMP" <<EOF
+            ${SITE_DOMAIN} {
+                encode zstd gzip
+                reverse_proxy ${CONTAINER_NAME}:${APP_PORT}
+            }
+            EOF
+            mv "$SITE_TMP" "$SITE_FILE"
+
+            if ! docker exec shared-caddy caddy validate --config /etc/caddy/Caddyfile; then
+              if [[ -f "$SITE_BACKUP" ]]; then mv "$SITE_BACKUP" "$SITE_FILE"; else rm -f "$SITE_FILE"; fi
+              exit 1
+            fi
+            if ! docker exec shared-caddy caddy reload --config /etc/caddy/Caddyfile --force; then
+              if [[ -f "$SITE_BACKUP" ]]; then mv "$SITE_BACKUP" "$SITE_FILE"; else rm -f "$SITE_FILE"; fi
+              docker exec shared-caddy caddy reload --config /etc/caddy/Caddyfile --force || true
+              exit 1
+            fi
+            rm -f "$SITE_BACKUP"
+
+      - name: Verify public HTTPS release
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 36); do
+            if curl --fail --silent --show-error --max-time 10 \
+              "https://${SITE_DOMAIN}/healthz" | grep -q 'ok'; then
+              echo "Deployment verified: https://${SITE_DOMAIN}"
+              {
+                echo '## Deployment verified'
+                echo
+                echo "- URL: https://${SITE_DOMAIN}"
+                echo "- Commit: ${GITHUB_SHA}"
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Public HTTPS health check failed: https://${SITE_DOMAIN}/healthz"
+          exit 1
