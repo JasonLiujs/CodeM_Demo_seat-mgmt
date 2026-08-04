@@ -25,7 +25,7 @@ jobs:
         if: hashFiles('package.json') != ''
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - run: npm ci || npm install
         if: hashFiles('package.json') != ''
       - run: npm run build
