@@ -16,6 +16,7 @@ import { employeesRouter } from './routes/employees.js';
 import { departmentsRouter } from './routes/departments.js';
 import { assignmentsRouter } from './routes/assignments.js';
 import { changeLogsRouter } from './routes/change-logs.js';
+import { statsRouter } from './routes/stats.js';
 import { notFoundHandler, errorHandler } from './middleware/error.js';
 import { appConfig } from './config/index.js';
 
@@ -61,6 +62,9 @@ export function createApp(): Express {
 
   // 路由 — 变更日志查询 API
   app.use('/api/change-logs', changeLogsRouter);
+
+  // 路由 — 统计看板 API
+  app.use('/api/stats', statsRouter);
 
   // 静态托管上传的图片文件
   const uploadsPath = join(__dirname, '..', '..', 'uploads');

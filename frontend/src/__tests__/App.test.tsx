@@ -22,12 +22,12 @@ describe('DashboardPage 组件', () => {
         </Routes>
       </MemoryRouter>,
     );
-    // 侧边栏导航和页面标题都包含"仪表盘"，至少渲染成功
+    // 侧边栏导航"仪表盘"与（加载完成后）页面标题"统计看板"都应能渲染
     expect(getAllByText('仪表盘').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('应显示脚手架就绪提示', () => {
-    const { getByText } = render(
+  it('应渲染统计看板（页面标题在加载态下也会出现或处于加载态）', () => {
+    const { container } = render(
       <MemoryRouter initialEntries={['/dashboard']}>
         <Routes>
           <Route element={<Layout />}>
@@ -36,9 +36,13 @@ describe('DashboardPage 组件', () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(getByText(/脚手架已就绪/)).toBeTruthy();
+    // DashboardPage 初始为加载态或统计看板；两者其一即为页面正常渲染。
+  // 加载态文本"加载中..."或统计看板标题"统计看板"应存在
+const bodyText = container.textContent ?? '';
+      const rendered = bodyText.includes('加载中...') || bodyText.includes('统计看板');
+      expect(rendered).toBe(true);
+    });
   });
-});
 
 describe('SeatMapPage 组件', () => {
   it('应显示工位地图页面标题（h2）', () => {

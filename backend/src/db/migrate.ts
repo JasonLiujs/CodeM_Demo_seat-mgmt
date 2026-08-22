@@ -112,9 +112,23 @@ export function runMigrations(): void {
     );
   `);
 
-  // 创建索引以提升查询性能
+  // 每日统计快照表（定时任务每天 23:59 写入当日利用率）
   db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_seats_area        ON seats(area);
+    CREATE TABLE IF NOT EXISTS stats_daily (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    date             TEXT NOT NULL UNIQUE,
+    total_seats      INTEGER NOT NULL DEFAULT 0,
+    occupied_seats   INTEGER NOT NULL DEFAULT 0,
+    available_seats  INTEGER NOT NULL DEFAULT 0,
+    reserved_seats   INTEGER NOT NULL DEFAULT 0,
+    utilization_rate REAL NOT NULL DEFAULT 0,
+    created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    `);
+
+    // 创建索引以提升查询性能
+    db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_seats_area        ON seats(area);
     CREATE INDEX IF NOT EXISTS idx_seats_status       ON seats(status);
     CREATE INDEX IF NOT EXISTS idx_seats_floor_plan   ON seats(floor_plan_id);
     CREATE INDEX IF NOT EXISTS idx_employees_dept     ON employees(department_id);
@@ -124,10 +138,11 @@ export function runMigrations(): void {
     CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);
     CREATE INDEX IF NOT EXISTS idx_bookings_seat      ON bookings(seat_id);
     CREATE INDEX IF NOT EXISTS idx_bookings_emp       ON bookings(employee_id);
-    CREATE INDEX IF NOT EXISTS idx_bookings_status    ON bookings(status);
+    CREATE INDEX IF NOT EXISTS idx_bookings_status   ON bookings(status);
     CREATE INDEX IF NOT EXISTS idx_change_logs_seat   ON change_logs(seat_id);
     CREATE INDEX IF NOT EXISTS idx_change_logs_emp    ON change_logs(employee_id);
     CREATE INDEX IF NOT EXISTS idx_change_logs_action ON change_logs(action);
+    CREATE INDEX IF NOT EXISTS idx_stats_daily_date   ON stats_daily(date);
   `);
 
   console.log('[migration] 所有表和索引已创建');
