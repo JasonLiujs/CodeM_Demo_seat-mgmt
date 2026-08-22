@@ -13,6 +13,10 @@ import type {
   UpdateEmployeeDto,
   CsvImportRow,
   CsvImportResult,
+  EmployeeSeatResult,
+  SeatWithAssignee,
+  Seat,
+  SeatStatus,
 } from '@seat-mgmt/shared';
 import type { PaginatedResponse } from '@seat-mgmt/shared';
 
@@ -288,7 +292,93 @@ export class EmployeeService {
   }
 
   /**
-   * CSV 批量导入员工
+   * 按工号查询员工及其当前工位（需求 7079669334）
+   * 查 assignments 表中 status='active' 的分配记录，联表获取工位信息
+   * @param empNo 员工工号
+   * @returns 员工工位查询结果（工位为 null 表示无分配）
+   */
+  getEmployeeSeatByEmpNo(empNo: string): EmployeeSeatResult {
+    const db = getDb();
+
+    // 查员工 + 部门名称
+    const empRow = db.prepare(`
+      SELECT e.id, e.emp_no, e.name, e.department_id, e.seat_id,
+             d.name AS department_name
+      FROM employees e
+      LEFT JOIN departments d ON e.department_id = d.id
+      WHERE e.emp_no = ?
+    `).get(empNo) as {
+      id: number;
+      emp_no: string;
+      name: string;
+      department_id: number | null;
+      seat_id: number | null;
+      department_name: string | null;
+    } | undefined;
+
+    if (!empRow) {
+      throw new AppError(404, `工号 ${empNo} 不存在`, 'EMPLOYEE_NOT_FOUND');
+    }
+
+    // 查 active 分配记录对应的工位
+    interface SeatJoinRow {
+      id: number;
+      code: string;
+      area: string;
+      type: string;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      floor_plan_id: number | null;
+      status: string;
+      created_at: string;
+      assignee_name: string | null;
+      assignee_emp_no: string | null;
+    }
+
+    const seatRow = db.prepare(`
+      SELECT s.id, s.code, s.area, s.type, s.x, s.y, s.w, s.h,
+             s.floor_plan_id, s.status, s.created_at,
+             e2.name AS assignee_name, e2.emp_no AS assignee_emp_no
+      FROM assignments a
+      JOIN seats s ON a.seat_id = s.id
+      LEFT JOIN employees e2 ON a.employee_id = e2.id
+      WHERE a.employee_id = ? AND a.status = 'active'
+      ORDER BY a.id DESC
+      LIMIT 1
+    `).get(empRow.id) as SeatJoinRow | undefined;
+
+    let seat: SeatWithAssignee | null = null;
+    if (seatRow) {
+      seat = {
+        id: seatRow.id,
+        code: seatRow.code,
+        area: seatRow.area,
+        type: seatRow.type as Seat['type'],
+        x: seatRow.x,
+        y: seatRow.y,
+        w: seatRow.w,
+        h: seatRow.h,
+        floorPlanId: seatRow.floor_plan_id,
+        status: seatRow.status as SeatStatus,
+        createdAt: seatRow.created_at,
+        assigneeName: seatRow.assignee_name,
+        assigneeEmpNo: seatRow.assignee_emp_no,
+      };
+    }
+
+    return {
+      employeeId: empRow.id,
+      empNo: empRow.emp_no,
+      employeeName: empRow.name,
+      departmentId: empRow.department_id,
+      departmentName: empRow.department_name,
+      seat,
+    };
+  }
+
+  /** CSV 批量导入员工
    * 解析工号/姓名/部门，去重（工号已存在则跳过），批量插入
    * 部门按名称查找，不存在时自动创建
    * @param csvText CSV 文件内容

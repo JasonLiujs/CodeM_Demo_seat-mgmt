@@ -3,6 +3,8 @@
  * 需求 7080732492：员工数据管理与 CSV 批量导入
  */
 
+import type { SeatWithAssignee } from './index';
+
 // ============================================================================
 // 部门 DTO
 // ============================================================================
@@ -64,4 +66,24 @@ export interface CsvImportResult {
   inserted: number;
   skipped: number;
   errors: string[];
+}
+
+// ============================================================================
+// 工位查询（需求 7079669334）
+// ============================================================================
+
+/** 员工工位查询结果 — 按工号查询员工及其当前工位 */
+export interface EmployeeSeatResult {
+  /** 员工 ID */
+  employeeId: number;
+  /** 工号 */
+  empNo: string;
+  /** 员工姓名 */
+  employeeName: string;
+  /** 部门 ID */
+  departmentId: number | null;
+  /** 部门名称 */
+  departmentName: string | null;
+  /** 工位信息（无分配时为 null） */
+  seat: SeatWithAssignee | null;
 }

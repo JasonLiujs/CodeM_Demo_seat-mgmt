@@ -7,10 +7,14 @@ import { Router } from 'express';
 import multer from 'multer';
 import { employeeService } from '../services/employee-service.js';
 import { createEmployeeSchema, updateEmployeeSchema, employeeListQuerySchema } from '../schemas/employee-schema.js';
+import { z } from 'zod';
 import { AppError } from '../middleware/error.js';
 import type { CreateEmployeeDto, UpdateEmployeeDto } from '@seat-mgmt/shared';
 
 export const employeesRouter = Router();
+
+/** 工号路径参数校验（与 createEmployeeSchema.empNo 一致约束） */
+const empNoParamSchema = z.string().min(1, '工号不能为空').max(32, '工号长度不能超过32').regex(/^[A-Za-z0-9_-]+$/, '工号只能包含字母、数字、下划线和短横线');
 
 /** multer 配置 — CSV 文件内存存储 */
 const upload = multer({
@@ -23,6 +27,24 @@ const upload = multer({
       cb(new AppError(400, '只支持 CSV 文件格式', 'INVALID_FILE_TYPE'));
     }
   },
+});
+
+/**
+ * GET /api/employees/:emp_no/seat — 按工号查询员工工位（需求 7079669334）
+ * 必须放在 /:id 路由之前，避免被数字 ID 路由拦截
+ */
+employeesRouter.get('/:empNo/seat', (req, res, next) => {
+  try {
+    const empNo = req.params.empNo;
+    const parsed = empNoParamSchema.safeParse(empNo);
+    if (!parsed.success) {
+      throw new AppError(400, parsed.error.issues[0]?.message ?? '工号格式不合法', 'VALIDATION_ERROR');
+    }
+    const result = employeeService.getEmployeeSeatByEmpNo(empNo);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**

@@ -36,6 +36,10 @@ export interface FloorPlanViewerProps {
   onSeatClick?: (seat: SeatWithAssignee) => void;
   /** 轮询间隔（毫秒），默认 5000 */
   pollingInterval?: number;
+  /** 指定工位 ID 高亮（脉冲动画，优先级与搜索高亮相同） */
+  highlightSeatId?: number;
+  /** 筛选后工位数量变化回调（用于父组件显示「无结果」提示） */
+  onFilteredCountChange?: (count: number) => void;
 }
 
 /** 默认平面图尺寸（未加载到底图时） */
@@ -52,6 +56,8 @@ export function FloorPlanViewer({
   filters = {},
   onSeatClick,
   pollingInterval,
+  highlightSeatId,
+  onFilteredCountChange,
 }: FloorPlanViewerProps): React.JSX.Element {
   const [hoveredSeat, setHoveredSeat] = useState<SeatWithAssignee | null>(null);
   const [floorPlan, setFloorPlan] = useState<FloorPlanResponse | null>(null);
@@ -147,6 +153,11 @@ export function FloorPlanViewer({
     return { filteredSeats: result, highlightIds: matchedBySearch };
   }, [seats, searchQuery, filters, nameToDepartment]);
 
+  // 通知父组件筛选后工位数量变化
+  useEffect(() => {
+    onFilteredCountChange?.(filteredSeats.length);
+  }, [filteredSeats.length, onFilteredCountChange]);
+
   const handleSeatClick = useCallback(
     (seat: SeatWithAssignee) => {
       onSeatClick?.(seat);
@@ -193,7 +204,7 @@ export function FloorPlanViewer({
           <SeatShape
             key={seat.id}
             seat={seat}
-            highlighted={highlightIds.has(seat.id)}
+            highlighted={highlightIds.has(seat.id) || seat.id === highlightSeatId}
             onHover={setHoveredSeat}
             onClick={handleSeatClick}
           />
