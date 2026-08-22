@@ -1,15 +1,19 @@
 /**
- * 工位地图页面 — 集成 SVG 平面图编辑器
+ * 工位地图页面 — 集成 SVG 平面图编辑器与查看器
  * 需求 7078968348：底图选择/上传 + FloorPlanEditor + 属性面板
+ * 需求 7080593490：查看器模式（只读 + 状态着色 + 搜索 + 筛选 + 轮询）
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { FloorPlanEditor, PropertyPanel } from '../components/floor-plan-editor';
-import { seatApi, floorPlanApi } from '../api/seat-api';
 import {
-  SeatType,
-  SeatStatus,
-} from '@seat-mgmt/shared';
+  FloorPlanViewer,
+  SearchBar,
+  FilterPanel,
+  type SeatFilters,
+} from '../components/floor-plan-viewer';
+import { seatApi, floorPlanApi } from '../api/seat-api';
+import { SeatType, SeatStatus } from '@seat-mgmt/shared';
 import type {
   SeatWithAssignee,
   CreateSeatDto,
@@ -20,7 +24,13 @@ import type {
 /** 工位计数器前缀（用于自动编号） */
 const SEAT_CODE_PREFIX = 'SEAT-';
 
+/** 页面模式：查看（只读）/ 编辑 */
+type PageMode = 'view' | 'edit';
+
 export function SeatMapPage() {
+  // 模式切换：默认查看器（只读）
+  const [mode, setMode] = useState<PageMode>('view');
+
   const [floorPlans, setFloorPlans] = useState<FloorPlanResponse[]>([]);
   const [selectedFloorPlanId, setSelectedFloorPlanId] = useState<number | null>(null);
   const [seats, setSeats] = useState<SeatWithAssignee[]>([]);
@@ -32,6 +42,10 @@ export function SeatMapPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadName, setUploadName] = useState('');
   const [uploading, setUploading] = useState(false);
+
+  // 查看器搜索/筛选状态
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<SeatFilters>({});
 
   /** 加载平面图列表 */
   const loadFloorPlans = useCallback(async () => {
@@ -47,7 +61,7 @@ export function SeatMapPage() {
     }
   }, [selectedFloorPlanId]);
 
-  /** 加载工位列表（按当前平面图筛选） */
+  /** 加载工位列表（按当前平面图筛选，编辑模式用） */
   const loadSeats = useCallback(async () => {
     if (selectedFloorPlanId === null) {
       setSeats([]);
@@ -74,10 +88,12 @@ export function SeatMapPage() {
     void loadFloorPlans();
   }, [loadFloorPlans]);
 
-  // 平面图变化时加载工位
+  // 平面图变化时加载工位（仅编辑模式需要本地 seats，查看器内部自轮询）
   useEffect(() => {
-    void loadSeats();
-  }, [loadSeats]);
+    if (mode === 'edit') {
+      void loadSeats();
+    }
+  }, [loadSeats, mode]);
 
   // 选中工位时同步选中对象
   useEffect(() => {
@@ -183,16 +199,68 @@ export function SeatMapPage() {
     }
   };
 
+  /** 查看器点击工位 → 选中（在查看模式下展示详情提示） */
+  const handleViewerSeatClick = useCallback((seat: SeatWithAssignee) => {
+    setSelectedSeat(seat);
+  }, []);
+
   /** 当前选中的平面图对象 */
   const currentFloorPlan = floorPlans.find((p) => p.id === selectedFloorPlanId) ?? null;
+
+  /** 查看器筛选所需的区域选项（从编辑模式 seats 聚合；查看模式由查看器内部 seats 决定，此处提供候选） */
+  const areaOptions = useMemo(() => {
+    const set = new Set<string>();
+    seats.forEach((s) => set.add(s.area));
+    return Array.from(set).sort();
+  }, [seats]);
+
+  /** 部门选项：从员工 API 聚合（降级方案，此处用编辑模式已加载的 seats 的 assigneeName 去重作为占位候选） */
+  const departmentOptions = useMemo(() => {
+    const set = new Set<string>();
+    seats.forEach((s) => {
+      if (s.assigneeName) set.add(s.assigneeName);
+    });
+    // 注：真正的部门列表由 FloorPlanViewer 内部从 /departments 加载并用于映射；
+    // FilterPanel 的 departmentOptions 用于下拉候选，此处用 assigneeName 维度作为可见候选
+    return Array.from(set).sort();
+  }, [seats]);
 
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-800 mb-6">工位地图</h2>
 
-      {/* 顶部工具栏：底图选择 + 上传 */}
+      {/* 顶部工具栏：模式切换 + 底图选择 + 上传 */}
       <div className="bg-white rounded-lg shadow p-4 mb-4">
         <div className="flex flex-wrap gap-4 items-end">
+          {/* 模式切换 */}
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">模式</label>
+            <div className="inline-flex rounded border border-gray-300 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setMode('view')}
+                className={`px-3 py-1.5 text-sm ${
+                  mode === 'view'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                查看
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('edit')}
+                className={`px-3 py-1.5 text-sm ${
+                  mode === 'edit'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                编辑
+              </button>
+            </div>
+          </div>
+
           {/* 底图选择 */}
           <div>
             <label className="block text-sm text-gray-600 mb-1">选择底图</label>
@@ -261,44 +329,85 @@ export function SeatMapPage() {
         </div>
       )}
 
-      {/* 编辑器 + 属性面板 */}
-      <div className="flex gap-4">
-        {currentFloorPlan ? (
-          <div className="flex-1 bg-white rounded-lg shadow p-4">
-            {loading && (
-              <div className="text-center text-gray-400 py-4 text-sm">加载工位中...</div>
-            )}
-            <FloorPlanEditor
-              floorPlanId={currentFloorPlan.id}
-              seats={seats}
-              imageUrl={currentFloorPlan.imageUrl}
-              width={currentFloorPlan.width}
-              height={currentFloorPlan.height}
-              selectedSeatId={selectedSeat?.id ?? null}
-              onSelectSeat={(seat) => setSelectedSeat(seat)}
-              onSeatCreate={handleSeatCreate}
-              onSeatUpdate={handleSeatUpdate}
-              onSeatDelete={handleSeatDelete}
+      {/* 查看模式：FloorPlanViewer + SearchBar + FilterPanel */}
+      {mode === 'view' && currentFloorPlan && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-lg shadow p-4 flex flex-wrap gap-4 items-center">
+            <SearchBar onSearchChange={setSearchQuery} />
+            <FilterPanel
+              filters={filters}
+              onFilterChange={setFilters}
+              areaOptions={areaOptions}
+              departmentOptions={departmentOptions}
             />
           </div>
-        ) : (
-          <div className="flex-1 bg-white rounded-lg shadow p-4">
-            <div className="flex items-center justify-center h-96 text-gray-400 text-sm border border-dashed border-gray-200 rounded">
-              请选择或上传底图
-            </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <FloorPlanViewer
+              floorPlanId={currentFloorPlan.id}
+              searchQuery={searchQuery}
+              filters={filters}
+              onSeatClick={handleViewerSeatClick}
+            />
+            {selectedSeat && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                已选中工位：<strong>{selectedSeat.code}</strong>
+                {selectedSeat.assigneeName && ` · 分配人：${selectedSeat.assigneeName}`}
+                {` · 区域：${selectedSeat.area}`}
+              </div>
+            )}
           </div>
-        )}
+        </div>
+      )}
 
-        <PropertyPanel
-          seat={selectedSeat}
-          onChange={(data) => {
-            if (selectedSeat) {
-              void handleSeatUpdate(selectedSeat.id, data);
-            }
-          }}
-          onDelete={(id) => void handleSeatDelete(id)}
-        />
-      </div>
+      {/* 编辑模式：FloorPlanEditor + PropertyPanel */}
+      {mode === 'edit' && (
+        <div className="flex gap-4">
+          {currentFloorPlan ? (
+            <div className="flex-1 bg-white rounded-lg shadow p-4">
+              {loading && (
+                <div className="text-center text-gray-400 py-4 text-sm">加载工位中...</div>
+              )}
+              <FloorPlanEditor
+                floorPlanId={currentFloorPlan.id}
+                seats={seats}
+                imageUrl={currentFloorPlan.imageUrl}
+                width={currentFloorPlan.width}
+                height={currentFloorPlan.height}
+                selectedSeatId={selectedSeat?.id ?? null}
+                onSelectSeat={(seat) => setSelectedSeat(seat)}
+                onSeatCreate={handleSeatCreate}
+                onSeatUpdate={handleSeatUpdate}
+                onSeatDelete={handleSeatDelete}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-center h-96 text-gray-400 text-sm border border-dashed border-gray-200 rounded">
+                请选择或上传底图
+              </div>
+            </div>
+          )}
+
+          <PropertyPanel
+            seat={selectedSeat}
+            onChange={(data) => {
+              if (selectedSeat) {
+                void handleSeatUpdate(selectedSeat.id, data);
+              }
+            }}
+            onDelete={(id) => void handleSeatDelete(id)}
+          />
+        </div>
+      )}
+
+      {/* 无底图时的提示（两种模式通用） */}
+      {!currentFloorPlan && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-center h-96 text-gray-400 text-sm border border-dashed border-gray-200 rounded">
+            请选择或上传底图
+          </div>
+        </div>
+      )}
     </div>
   );
 }

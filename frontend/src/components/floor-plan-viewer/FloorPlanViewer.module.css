@@ -1,0 +1,22 @@
+/**
+ * FloorPlanViewer 样式
+ * 需求 7080593490：搜索命中工位高亮闪烁动画
+ */
+
+@keyframes highlight-flash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.seat-highlight {
+  animation: highlight-flash 1.2s infinite ease-in-out;
+}
+
+.viewerContainer {
+  position: relative;
+}
