@@ -12,6 +12,8 @@ import { fileURLToPath } from 'node:url';
 import { healthRouter } from './routes/health.js';
 import { seatsRouter } from './routes/seats.js';
 import { floorPlansRouter } from './routes/floor-plans.js';
+import { employeesRouter } from './routes/employees.js';
+import { departmentsRouter } from './routes/departments.js';
 import { notFoundHandler, errorHandler } from './middleware/error.js';
 import { appConfig } from './config/index.js';
 
@@ -45,6 +47,12 @@ export function createApp(): Express {
 
   // 路由 — 平面图管理 API
   app.use('/api/floor-plans', floorPlansRouter);
+
+  // 路由 — 部门管理 API
+  app.use('/api/departments', departmentsRouter);
+
+  // 路由 — 员工管理 API（含 CSV 批量导入）
+  app.use('/api/employees', employeesRouter);
 
   // 静态托管上传的图片文件
   const uploadsPath = join(__dirname, '..', '..', 'uploads');

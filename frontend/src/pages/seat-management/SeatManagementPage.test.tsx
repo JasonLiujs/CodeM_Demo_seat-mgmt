@@ -6,8 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SeatManagementPage } from './SeatManagementPage';
-import type { PaginatedResponse } from '@seat-mgmt/shared';
-import type { Seat } from '@seat-mgmt/shared';
+import { SeatType, SeatStatus, type PaginatedResponse, type Seat } from '@seat-mgmt/shared';
 
 // 模拟 seatApi
 vi.mock('../../api/seat-api', () => ({
@@ -23,13 +22,13 @@ const mockSeat: Seat = {
   id: 1,
   code: 'A-001',
   area: 'A区',
-  type: 'standard' as const,
+  type: SeatType.STANDARD,
   x: 100,
   y: 100,
   w: 60,
   h: 60,
   floorPlanId: 1,
-  status: 'available' as const,
+  status: SeatStatus.AVAILABLE,
   createdAt: '2024-01-01T00:00:00Z',
 };
 

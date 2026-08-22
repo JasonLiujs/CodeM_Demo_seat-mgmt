@@ -8,3 +8,4 @@
  */
 export * from './types/index';
 export * from './types/pagination';
+export * from './types/employee';
