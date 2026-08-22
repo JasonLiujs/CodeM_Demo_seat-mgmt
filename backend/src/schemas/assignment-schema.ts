@@ -55,6 +55,16 @@ export const changeLogFilterSchema = z.object({
   pageSize: z.coerce.number().int().positive().max(100).default(20),
 });
 
+/** 变更日志导出 schema（无分页字段，复用筛选条件） */
+export const changeLogExportSchema = z.object({
+  action: z.string().optional(),
+  departmentId: z.coerce.number().int().positive().optional(),
+  employeeId: z.coerce.number().int().positive().optional(),
+  seatId: z.coerce.number().int().positive().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
 /** 分配记录筛选 schema */
 export const assignmentFilterSchema = z.object({
   seatId: z.coerce.number().int().positive().optional(),

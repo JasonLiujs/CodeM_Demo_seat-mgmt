@@ -10,6 +10,7 @@ import { EmployeeManagementPage } from './pages/employee-management/EmployeeMana
 import { SeatAssignmentPage } from './pages/seat-assignment/SeatAssignmentPage';
 import { SeatQueryPage } from './pages/seat-query/SeatQueryPage';
 import { SeatBookingPage } from './pages/seat-booking/SeatBookingPage';
+import { ChangeHistoryPage } from './pages/change-history/ChangeHistoryPage';
 import { Layout } from './components/Layout';
 
 export function App() {
@@ -23,6 +24,7 @@ export function App() {
           <Route path="/seat-management" element={<SeatManagementPage />} />
           <Route path="/seat-query" element={<SeatQueryPage />} />
           <Route path="/seat-booking" element={<SeatBookingPage />} />
+          <Route path="/change-history" element={<ChangeHistoryPage />} />
           <Route path="/employee-management" element={<EmployeeManagementPage />} />
           <Route path="/seat-assignment" element={<SeatAssignmentPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

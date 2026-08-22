@@ -12,7 +12,8 @@ const navItems = [
 { to: '/seat-booking', label: '工位预约' },
 { to: '/seat-assignment', label: '工位分配' },
 { to: '/employee-management', label: '员工管理' },
-  ];
+  { to: '/change-history', label: '变更历史' },
+    ];
 
 export function Layout() {
   return (

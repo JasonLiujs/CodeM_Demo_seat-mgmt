@@ -189,3 +189,80 @@ describe('GET /api/change-logs — 变更历史查询', () => {
     expect(data[0].id).toBeGreaterThan(data[1].id);
   });
 });
+
+describe('GET /api/change-logs/export — CSV 导出', () => {
+  it('应返回 text/csv Content-Type', async () => {
+    const res = await request(app).get('/api/change-logs/export');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/csv');
+  });
+
+  it('应返回 UTF-8 BOM 头', async () => {
+    const res = await request(app).get('/api/change-logs/export').buffer(true).parse((res, cb) => {
+    const chunks: Buffer[] = [];
+    res.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    res.on('end', () => cb(null, Buffer.concat(chunks)));
+    });
+    const buf = res.body as Buffer;
+  // BOM = 0xEF 0xBB 0xBF
+expect(buf[0]).toBe(0xef);
+  expect(buf[1]).toBe(0xbb);
+    expect(buf[2]).toBe(0xbf);
+    });
+
+    it('无数据时应只包含表头', async () => {
+    const res = await request(app).get('/api/change-logs/export');
+    const csv = res.text;
+  const lines = csv.split('\n');
+    // 第一行为 BOM + 表头（列序与需求/前端一致）
+    expect(lines[0]).toBe('\uFEFF时间,操作人,工位,员工,操作类型,原因');
+    expect(lines).toHaveLength(1);
+  });
+
+  it('分配后 CSV 应包含对应记录', async () => {
+    await request(app)
+      .post('/api/assignments')
+      .send({ seatId: 1, employeeId: 1, assignedBy: 'admin' });
+
+    const res = await request(app).get('/api/change-logs/export');
+    expect(res.status).toBe(200);
+    const csv = res.text;
+    // 应包含操作人 admin、工位编码 A-001、员工姓名 张伟
+    expect(csv).toContain('admin');
+    expect(csv).toContain('A-001');
+    expect(csv).toContain('张伟');
+    // 操作类型中文标签
+    expect(csv).toContain('分配');
+  });
+
+  it('应支持按 action 筛选导出', async () => {
+    await request(app)
+      .post('/api/assignments')
+      .send({ seatId: 1, employeeId: 1, assignedBy: 'admin' });
+    await request(app)
+      .delete('/api/assignments/1');
+
+    const res = await request(app).get('/api/change-logs/export?action=assign');
+    const csv = res.text;
+    const lines = csv.split('\n');
+    // 表头 + 1 条 assign 记录
+    expect(lines).toHaveLength(2);
+    expect(csv).toContain('分配');
+    expect(csv).not.toContain('取消分配');
+  });
+
+  it('应支持按 departmentId 筛选导出', async () => {
+    await request(app)
+      .post('/api/assignments')
+      .send({ seatId: 1, employeeId: 1, assignedBy: 'admin' });
+    await request(app)
+      .post('/api/assignments')
+      .send({ seatId: 2, employeeId: 3, assignedBy: 'admin' });
+
+    // 员工1 属于研发部(dept=1)，员工3 属于产品部(dept=2)
+    const res = await request(app).get('/api/change-logs/export?departmentId=1');
+    const csv = res.text;
+    expect(csv).toContain('张伟');
+    expect(csv).not.toContain('王芳');
+  });
+});
