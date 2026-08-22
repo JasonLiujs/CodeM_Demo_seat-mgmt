@@ -7,6 +7,7 @@ import { Outlet, NavLink } from 'react-router-dom';
 const navItems = [
   { to: '/dashboard', label: '仪表盘' },
   { to: '/seat-map', label: '工位地图' },
+  { to: '/seat-management', label: '工位管理' },
 ];
 
 export function Layout() {

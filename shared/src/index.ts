@@ -7,3 +7,4 @@
  * 因此 import 路径不带 .js 扩展名。
  */
 export * from './types/index';
+export * from './types/pagination';

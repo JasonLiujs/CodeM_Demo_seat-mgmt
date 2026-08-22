@@ -25,8 +25,8 @@ export function getDb(): Database.Database {
     return dbInstance;
   }
 
-  // 统一从 appConfig 读取配置（appConfig.dbPath 回退到默认路径）
-  const dbPath = appConfig.dbPath || DEFAULT_DB_PATH;
+  // 优先从环境变量读取（支持测试时动态切换 DB_PATH），回退到 appConfig
+  const dbPath = process.env.DB_PATH || appConfig.dbPath || DEFAULT_DB_PATH;
 
   // 确保数据目录存在
   const dbDir = dirname(dbPath);

@@ -10,6 +10,8 @@ import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { healthRouter } from './routes/health.js';
+import { seatsRouter } from './routes/seats.js';
+import { floorPlansRouter } from './routes/floor-plans.js';
 import { notFoundHandler, errorHandler } from './middleware/error.js';
 import { appConfig } from './config/index.js';
 
@@ -37,6 +39,16 @@ export function createApp(): Express {
 
   // 路由 — 健康检查（必须在前端静态文件之前注册）
   app.use(healthRouter); // /healthz, /api/health
+
+  // 路由 — 工位 CRUD API
+  app.use('/api/seats', seatsRouter);
+
+  // 路由 — 平面图管理 API
+  app.use('/api/floor-plans', floorPlansRouter);
+
+  // 静态托管上传的图片文件
+  const uploadsPath = join(__dirname, '..', '..', 'uploads');
+  app.use('/uploads', express.static(uploadsPath));
 
   // 生产环境：静态托管前端构建产物
   if (!appConfig.isDev && existsSync(frontendDistPath)) {

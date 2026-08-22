@@ -5,6 +5,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardPage } from './pages/DashboardPage';
 import { SeatMapPage } from './pages/SeatMapPage';
+import { SeatManagementPage } from './pages/seat-management/SeatManagementPage';
 import { Layout } from './components/Layout';
 
 export function App() {
@@ -15,6 +16,7 @@ export function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/seat-map" element={<SeatMapPage />} />
+          <Route path="/seat-management" element={<SeatManagementPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
