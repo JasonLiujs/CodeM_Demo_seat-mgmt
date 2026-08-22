@@ -9,6 +9,7 @@ const navItems = [
   { to: '/seat-map', label: '工位地图' },
   { to: '/seat-management', label: '工位管理' },
   { to: '/seat-query', label: '工位查询' },
+{ to: '/seat-booking', label: '工位预约' },
 { to: '/seat-assignment', label: '工位分配' },
 { to: '/employee-management', label: '员工管理' },
   ];

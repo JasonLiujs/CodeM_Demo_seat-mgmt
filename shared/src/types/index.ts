@@ -41,6 +41,7 @@ export enum BookingStatus {
   CONFIRMED = 'confirmed',
   CANCELLED = 'cancelled',
   COMPLETED = 'completed',
+  EXPIRED = 'expired',
 }
 
 /** 变更日志动作 */
@@ -270,6 +271,14 @@ export interface BookingFilterDto {
   seatId?: number;
   employeeId?: number;
   status?: BookingStatus;
+}
+
+/** 预订详情（含联表信息：工位编码、区域、员工姓名工号） */
+export interface BookingWithDetail extends Booking {
+  seatCode: string | null;
+  seatArea: string | null;
+  employeeName: string | null;
+  employeeEmpNo: string | null;
 }
 
 // ============================================================================
