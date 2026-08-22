@@ -1,0 +1,14 @@
+{
+  "scenes": {
+    "frontend/src/components/floor-plan-editor/FloorPlanEditor.tsx": {
+      "hash": "1ba7cac0e635",
+      "source_sha256": "e315f5a6118db2d4e988ceaad3f7d75dfe78b7ec0ef3049c77418933606f5c1b",
+      "description": "React TypeScript SVG interactive floor plan editor component: load floor plan background image as SVG image element, drag-draw rectangular seat boxes on mousedown/mousemove/mouseup, click to select se",
+      "generated_at": "2026-08-22T10:42:38Z",
+      "visual_mode": "procedural",
+      "requirements_sha256": "bbb1982da06e3c1def62f07835a48562174abc8f5538e077497249f2d2784aeb",
+      "asset_manifest": "",
+      "asset_ids": []
+    }
+  }
+}
