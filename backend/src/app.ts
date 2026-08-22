@@ -1,0 +1,60 @@
+/**
+ * Express 应用配置
+ * 组装中间件和路由
+ * 生产环境下同时静态托管前端构建产物
+ */
+
+import express, { type Express } from 'express';
+import cors from 'cors';
+import { existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { healthRouter } from './routes/health.js';
+import { notFoundHandler, errorHandler } from './middleware/error.js';
+import { appConfig } from './config/index.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/** 前端构建产物目录（相对于 backend/dist/app.js 上溯三级到仓库根的 frontend/dist） */
+const frontendDistPath = join(__dirname, '..', '..', 'frontend', 'dist');
+
+/** 创建并配置 Express 应用 */
+export function createApp(): Express {
+  const app = express();
+
+  // CORS — 允许前端开发服务器访问
+  app.use(
+    cors({
+      origin: appConfig.frontendUrl,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    }),
+  );
+
+  // JSON body 解析
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // 路由 — 健康检查（必须在前端静态文件之前注册）
+  app.use(healthRouter); // /healthz, /api/health
+
+  // 生产环境：静态托管前端构建产物
+  if (!appConfig.isDev && existsSync(frontendDistPath)) {
+    app.use(express.static(frontendDistPath));
+    // SPA 回退：非 /api 和非 /healthz 的 GET 请求返回 index.html
+    app.get('*', (_req, res, next) => {
+      const indexPath = join(frontendDistPath, 'index.html');
+      if (existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        next();
+      }
+    });
+  }
+
+  // 404 和错误处理
+  app.use(notFoundHandler);
+  app.use(errorHandler);
+
+  return app;
+}

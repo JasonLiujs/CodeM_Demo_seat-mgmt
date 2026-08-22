@@ -1,11 +1,15 @@
 services:
   app:
-    image: ${IMAGE_NAME:-codem-template}:${IMAGE_TAG:-latest}
+    image: ${IMAGE_NAME:-codem-seat-mgmt}:${IMAGE_TAG:-latest}
     build: .
-    container_name: ${CONTAINER_NAME:-codem-template-app}
+    container_name: ${CONTAINER_NAME:-codem-seat-mgmt-app}
     restart: unless-stopped
     environment:
       PORT: ${APP_PORT:-8080}
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_PATH: ${DB_PATH:-/app/backend/data/seat-mgmt.db}
+    volumes:
+      - seat-mgmt-data:/app/backend/data
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:${APP_PORT:-8080}/healthz"]
       interval: 30s
@@ -14,6 +18,43 @@ services:
       start_period: 10s
     networks:
       - caddy-net
+
+  # 开发环境：前后端热重载（不参与生产部署）
+  dev-backend:
+    profiles: ["dev"]
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -w @seat-mgmt/backend"
+    environment:
+      PORT: 3001
+      NODE_ENV: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "3001:3001"
+    networks:
+      - caddy-net
+
+  dev-frontend:
+    profiles: ["dev"]
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -w @seat-mgmt/frontend -- --host"
+    environment:
+      NODE_ENV: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - dev-backend
+    networks:
+      - caddy-net
+
+volumes:
+  seat-mgmt-data:
 
 networks:
   caddy-net:
