@@ -7,14 +7,15 @@ import { getDb } from '../db/connection.js';
 import { AppError } from '../middleware/error.js';
 import type {
   Seat,
+  SeatWithAssignee,
   CreateSeatDto,
   UpdateSeatDto,
   SeatFilterDto,
 } from '@seat-mgmt/shared';
 import type { PaginatedResponse } from '@seat-mgmt/shared';
 
-/** 将数据库行映射为 Seat 实体 */
-interface SeatRow {
+/** 联表查询结果行（含分配人信息） */
+interface SeatJoinRow {
   id: number;
   code: string;
   area: string;
@@ -26,10 +27,12 @@ interface SeatRow {
   floor_plan_id: number | null;
   status: string;
   created_at: string;
+  assignee_name: string | null;
+  assignee_emp_no: string | null;
 }
 
-/** 行映射到实体 */
-function mapRow(row: SeatRow): Seat {
+/** 将联表行映射为 SeatWithAssignee */
+function mapJoinRow(row: SeatJoinRow): SeatWithAssignee {
   return {
     id: row.id,
     code: row.code,
@@ -42,6 +45,8 @@ function mapRow(row: SeatRow): Seat {
     floorPlanId: row.floor_plan_id,
     status: row.status as Seat['status'],
     createdAt: row.created_at,
+    assigneeName: row.assignee_name,
+    assigneeEmpNo: row.assignee_emp_no,
   };
 }
 
@@ -55,29 +60,29 @@ export class SeatService {
    * @param filter 筛选条件与分页参数
    * @returns 分页响应
    */
-  listSeats(filter: SeatFilterDto & { page?: number; pageSize?: number }): PaginatedResponse<Seat> {
+  listSeats(filter: SeatFilterDto & { page?: number; pageSize?: number }): PaginatedResponse<SeatWithAssignee> {
     const db = getDb();
     const page = filter.page ?? 1;
     const pageSize = filter.pageSize ?? 20;
 
-    // 构建 WHERE 子句
+    // 构建 WHERE 子句（条件作用于 seats 别名 s）
     const conditions: string[] = [];
     const params: (string | number)[] = [];
 
     if (filter.area) {
-      conditions.push('area = ?');
+      conditions.push('s.area = ?');
       params.push(filter.area);
     }
     if (filter.type) {
-      conditions.push('type = ?');
+      conditions.push('s.type = ?');
       params.push(filter.type);
     }
     if (filter.status) {
-      conditions.push('status = ?');
+      conditions.push('s.status = ?');
       params.push(filter.status);
     }
     if (filter.floorPlanId) {
-      conditions.push('floor_plan_id = ?');
+      conditions.push('s.floor_plan_id = ?');
       params.push(filter.floorPlanId);
     }
 
@@ -86,19 +91,27 @@ export class SeatService {
       : '';
 
     // 查询总数
-    const countSql = `SELECT COUNT(*) as total FROM seats ${whereClause}`;
+    const countSql = `SELECT COUNT(*) as total FROM seats s ${whereClause}`;
     const countResult = db.prepare(countSql).get(...params) as { total: number };
     const total = countResult.total;
 
-    // 查询分页数据
+    // 查询分页数据（LEFT JOIN assignments + employees 获取分配人信息）
     const offset = (page - 1) * pageSize;
-    const dataSql = `SELECT * FROM seats ${whereClause} ORDER BY id ASC LIMIT ? OFFSET ?`;
-    const rows = db.prepare(dataSql).all(...params, pageSize, offset) as SeatRow[];
+    const dataSql = `
+    SELECT s.*, e.name AS assignee_name, e.emp_no AS assignee_emp_no
+FROM seats s
+    LEFT JOIN assignments a ON s.id = a.seat_id AND a.status = 'active'
+LEFT JOIN employees e ON a.employee_id = e.id
+    ${whereClause}
+      ORDER BY s.id ASC
+      LIMIT ? OFFSET ?
+      `;
+      const rows = db.prepare(dataSql).all(...params, pageSize, offset) as SeatJoinRow[];
 
     const totalPages = Math.ceil(total / pageSize);
 
     return {
-      data: rows.map(mapRow),
+      data: rows.map(mapJoinRow),
       total,
       page,
       pageSize,
@@ -111,7 +124,7 @@ export class SeatService {
    * @param data 创建 DTO
    * @returns 新创建的工位
    */
-  createSeat(data: CreateSeatDto): Seat {
+  createSeat(data: CreateSeatDto): SeatWithAssignee {
     const db = getDb();
 
     // 检查 code 是否重复
@@ -135,9 +148,15 @@ export class SeatService {
       data.status ?? 'available',
     );
 
-    // 查回新插入的行
-    const row = db.prepare('SELECT * FROM seats WHERE id = ?').get(result.lastInsertRowid) as SeatRow;
-    return mapRow(row);
+    // 查回新插入的行（含分配人信息，新工位无分配人）
+    const row = db.prepare(`
+    SELECT s.*, e.name AS assignee_name, e.emp_no AS assignee_emp_no
+  FROM seats s
+      LEFT JOIN assignments a ON s.id = a.seat_id AND a.status = 'active'
+      LEFT JOIN employees e ON a.employee_id = e.id
+      WHERE s.id = ?
+    `).get(result.lastInsertRowid) as SeatJoinRow;
+    return mapJoinRow(row);
   }
 
   /**
@@ -146,11 +165,11 @@ export class SeatService {
    * @param data 更新 DTO
    * @returns 更新后的工位
    */
-  updateSeat(id: number, data: UpdateSeatDto): Seat {
+  updateSeat(id: number, data: UpdateSeatDto): SeatWithAssignee {
     const db = getDb();
 
     // 检查工位是否存在
-    const existing = db.prepare('SELECT * FROM seats WHERE id = ?').get(id) as SeatRow | undefined;
+    const existing = db.prepare('SELECT id FROM seats WHERE id = ?').get(id);
     if (!existing) {
       throw new AppError(404, `工位 ID ${id} 不存在`, 'SEAT_NOT_FOUND');
     }
@@ -197,16 +216,29 @@ export class SeatService {
     }
 
     if (fields.length === 0) {
-      // 没有字段需要更新，返回当前值
-      return mapRow(existing);
+      // 没有字段需要更新，返回当前值（含分配人信息）
+      const row = db.prepare(`
+    SELECT s.*, e.name AS assignee_name, e.emp_no AS assignee_emp_no
+FROM seats s
+    LEFT JOIN assignments a ON s.id = a.seat_id AND a.status = 'active'
+    LEFT JOIN employees e ON a.employee_id = e.id
+WHERE s.id = ?
+    `).get(id) as SeatJoinRow;
+    return mapJoinRow(row);
     }
 
     params.push(id);
     db.prepare(`UPDATE seats SET ${fields.join(', ')} WHERE id = ?`).run(...params);
 
-    // 查回更新后的行
-    const row = db.prepare('SELECT * FROM seats WHERE id = ?').get(id) as SeatRow;
-    return mapRow(row);
+    // 查回更新后的行（含分配人信息）
+    const row = db.prepare(`
+      SELECT s.*, e.name AS assignee_name, e.emp_no AS assignee_emp_no
+      FROM seats s
+      LEFT JOIN assignments a ON s.id = a.seat_id AND a.status = 'active'
+      LEFT JOIN employees e ON a.employee_id = e.id
+      WHERE s.id = ?
+    `).get(id) as SeatJoinRow;
+    return mapJoinRow(row);
   }
 
   /**

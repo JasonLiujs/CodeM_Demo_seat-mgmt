@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { seatApi } from '../../api/seat-api';
-import type { Seat, SeatStatus, SeatType } from '@seat-mgmt/shared';
+import type { SeatWithAssignee, SeatStatus, SeatType } from '@seat-mgmt/shared';
 
 /** 筛选条件 */
 interface FilterState {
@@ -39,7 +39,7 @@ const typeLabels: Record<SeatType, string> = {
 };
 
 export function SeatManagementPage() {
-  const [seats, setSeats] = useState<Seat[]>([]);
+  const [seats, setSeats] = useState<SeatWithAssignee[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -178,19 +178,20 @@ export function SeatManagementPage() {
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">区域</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">类型</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">分配人</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                   加载中...
                 </td>
               </tr>
             ) : seats.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                   暂无数据
                 </td>
               </tr>
@@ -206,14 +207,17 @@ export function SeatManagementPage() {
                       {statusLabels[seat.status]}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {seat.assigneeName ? `${seat.assigneeName}（${seat.assigneeEmpNo}）` : '-'}
+                      </td>
+                      <td className="px-4 py-3">
                     <button
                       onClick={() => handleDelete(seat.id)}
-                      className="text-red-600 hover:text-red-800 text-sm"
-                    >
-                      删除
-                    </button>
-                  </td>
+                    className="text-red-600 hover:text-red-800 text-sm"
+                  >
+                删除
+              </button>
+            </td>
                 </tr>
               ))
             )}

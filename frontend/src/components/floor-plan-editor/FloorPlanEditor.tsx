@@ -7,7 +7,7 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type {
-  Seat,
+  SeatWithAssignee,
   CreateSeatDto,
   UpdateSeatDto,
 } from '@seat-mgmt/shared';
@@ -66,12 +66,12 @@ const HANDLES: Array<{ handle: ResizeHandle; cursor: string; getX: (w: number) =
  */
 interface FloorPlanEditorFullProps {
   floorPlanId: number;
-  seats: Seat[];
+  seats: SeatWithAssignee[];
   imageUrl: string;
   width: number;
   height: number;
   selectedSeatId: number | null;
-  onSelectSeat: (seat: Seat | null) => void;
+  onSelectSeat: (seat: SeatWithAssignee | null) => void;
   onSeatCreate: (data: CreateSeatDto) => void;
   onSeatUpdate: (id: number, data: UpdateSeatDto) => void;
   onSeatDelete: (id: number) => void;
@@ -237,7 +237,7 @@ code: '',
   }, [mode, drawRect, dragPreview, onSeatCreate, onSeatUpdate]);
 
   /** 点击工位选中 */
-  const handleSeatClick = useCallback((e: React.MouseEvent, seat: Seat) => {
+  const handleSeatClick = useCallback((e: React.MouseEvent, seat: SeatWithAssignee) => {
     e.stopPropagation();
     onSelectSeat(seat);
   }, [onSelectSeat]);

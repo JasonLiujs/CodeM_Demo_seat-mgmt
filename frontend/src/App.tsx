@@ -7,6 +7,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { SeatMapPage } from './pages/SeatMapPage';
 import { SeatManagementPage } from './pages/seat-management/SeatManagementPage';
 import { EmployeeManagementPage } from './pages/employee-management/EmployeeManagementPage';
+import { SeatAssignmentPage } from './pages/seat-assignment/SeatAssignmentPage';
 import { Layout } from './components/Layout';
 
 export function App() {
@@ -19,6 +20,7 @@ export function App() {
           <Route path="/seat-map" element={<SeatMapPage />} />
           <Route path="/seat-management" element={<SeatManagementPage />} />
           <Route path="/employee-management" element={<EmployeeManagementPage />} />
+          <Route path="/seat-assignment" element={<SeatAssignmentPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>

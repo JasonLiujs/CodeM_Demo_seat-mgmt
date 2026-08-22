@@ -6,9 +6,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { FloorPlanEditor } from './FloorPlanEditor';
-import { SeatType, SeatStatus, type Seat } from '@seat-mgmt/shared';
+import { SeatType, SeatStatus, type SeatWithAssignee } from '@seat-mgmt/shared';
 
-const mockSeats: Seat[] = [
+const mockSeats: SeatWithAssignee[] = [
   {
     id: 1,
     code: 'A-001',
@@ -21,6 +21,8 @@ const mockSeats: Seat[] = [
     floorPlanId: 1,
     status: SeatStatus.AVAILABLE,
     createdAt: '2024-01-01T00:00:00Z',
+    assigneeName: null,
+    assigneeEmpNo: null,
   },
   {
     id: 2,
@@ -34,6 +36,8 @@ const mockSeats: Seat[] = [
     floorPlanId: 1,
     status: SeatStatus.OCCUPIED,
     createdAt: '2024-01-01T00:00:00Z',
+    assigneeName: null,
+    assigneeEmpNo: null,
   },
 ];
 

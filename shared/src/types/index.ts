@@ -93,6 +93,14 @@ export interface Seat {
   createdAt: string;
 }
 
+/** 工位（含分配人信息，联表查询结果） */
+export interface SeatWithAssignee extends Seat {
+  /** 当前分配人姓名（occupied 时有值，否则 null） */
+  assigneeName: string | null;
+  /** 当前分配人工号（occupied 时有值，否则 null） */
+  assigneeEmpNo: string | null;
+}
+
 /** 员工实体 */
 export interface Employee {
   id: number;
@@ -136,6 +144,45 @@ export interface ChangeLog {
   operator: string;
   reason: string | null;
   createdAt: string;
+}
+
+/** 变更日志筛选 DTO */
+export interface ChangeLogFilterDto {
+  action?: ChangeLogAction;
+  departmentId?: number;
+  employeeId?: number;
+  seatId?: number;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/** 部门搬迁 DTO */
+export interface RelocateDto {
+  departmentId: number;
+  targetArea: string;
+  operator: string;
+}
+
+/** 变更日志联表详情（含工位编码、员工姓名、部门名称） */
+export interface ChangeLogWithDetail {
+  id: number;
+  action: ChangeLogAction;
+  seatId: number | null;
+  employeeId: number | null;
+  oldSeatId: number | null;
+  newSeatId: number | null;
+  operator: string;
+  reason: string | null;
+  createdAt: string;
+  seatCode: string | null;
+  employeeName: string | null;
+  employeeEmpNo: string | null;
+  employeeDepartmentId: number | null;
+  employeeDepartmentName: string | null;
+  oldSeatCode: string | null;
+  newSeatCode: string | null;
 }
 
 // ============================================================================

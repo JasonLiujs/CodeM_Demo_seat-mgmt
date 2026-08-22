@@ -4,7 +4,7 @@
  */
 
 import type {
-  Seat,
+  SeatWithAssignee,
   CreateSeatDto,
   UpdateSeatDto,
   SeatFilterDto,
@@ -34,8 +34,8 @@ async function request<T>(
 
 /** 工位 API 封装 */
 export const seatApi = {
-  /** 分页查询工位列表 */
-  listSeats(params: SeatQueryParams): Promise<PaginatedResponse<Seat>> {
+  /** 分页查询工位列表（含分配人信息） */
+  listSeats(params: SeatQueryParams): Promise<PaginatedResponse<SeatWithAssignee>> {
     const query = new URLSearchParams();
     if (params.area) query.set('area', params.area);
     if (params.type) query.set('type', params.type);
@@ -43,20 +43,20 @@ export const seatApi = {
     if (params.floorPlanId) query.set('floorPlanId', String(params.floorPlanId));
     if (params.page) query.set('page', String(params.page));
     if (params.pageSize) query.set('pageSize', String(params.pageSize));
-    return request<PaginatedResponse<Seat>>(`/api/seats?${query}`);
+    return request<PaginatedResponse<SeatWithAssignee>>(`/api/seats?${query}`);
   },
 
   /** 创建工位 */
-  createSeat(data: CreateSeatDto): Promise<Seat> {
-    return request<Seat>('/api/seats', {
+  createSeat(data: CreateSeatDto): Promise<SeatWithAssignee> {
+    return request<SeatWithAssignee>('/api/seats', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
   /** 更新工位 */
-  updateSeat(id: number, data: UpdateSeatDto): Promise<Seat> {
-    return request<Seat>(`/api/seats/${id}`, {
+  updateSeat(id: number, data: UpdateSeatDto): Promise<SeatWithAssignee> {
+    return request<SeatWithAssignee>(`/api/seats/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });

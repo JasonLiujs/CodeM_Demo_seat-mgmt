@@ -14,6 +14,8 @@ import { seatsRouter } from './routes/seats.js';
 import { floorPlansRouter } from './routes/floor-plans.js';
 import { employeesRouter } from './routes/employees.js';
 import { departmentsRouter } from './routes/departments.js';
+import { assignmentsRouter } from './routes/assignments.js';
+import { changeLogsRouter } from './routes/change-logs.js';
 import { notFoundHandler, errorHandler } from './middleware/error.js';
 import { appConfig } from './config/index.js';
 
@@ -53,6 +55,12 @@ export function createApp(): Express {
 
   // 路由 — 员工管理 API（含 CSV 批量导入）
   app.use('/api/employees', employeesRouter);
+
+  // 路由 — 工位分配与变更管理 API
+  app.use('/api/assignments', assignmentsRouter);
+
+  // 路由 — 变更日志查询 API
+  app.use('/api/change-logs', changeLogsRouter);
 
   // 静态托管上传的图片文件
   const uploadsPath = join(__dirname, '..', '..', 'uploads');

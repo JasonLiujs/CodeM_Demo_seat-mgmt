@@ -11,7 +11,7 @@ import {
   SeatStatus,
 } from '@seat-mgmt/shared';
 import type {
-  Seat,
+  SeatWithAssignee,
   CreateSeatDto,
   UpdateSeatDto,
   FloorPlanResponse,
@@ -23,8 +23,8 @@ const SEAT_CODE_PREFIX = 'SEAT-';
 export function SeatMapPage() {
   const [floorPlans, setFloorPlans] = useState<FloorPlanResponse[]>([]);
   const [selectedFloorPlanId, setSelectedFloorPlanId] = useState<number | null>(null);
-  const [seats, setSeats] = useState<Seat[]>([]);
-  const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
+  const [seats, setSeats] = useState<SeatWithAssignee[]>([]);
+  const [selectedSeat, setSelectedSeat] = useState<SeatWithAssignee | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -275,7 +275,7 @@ export function SeatMapPage() {
               width={currentFloorPlan.width}
               height={currentFloorPlan.height}
               selectedSeatId={selectedSeat?.id ?? null}
-              onSelectSeat={setSelectedSeat}
+              onSelectSeat={(seat) => setSelectedSeat(seat)}
               onSeatCreate={handleSeatCreate}
               onSeatUpdate={handleSeatUpdate}
               onSeatDelete={handleSeatDelete}

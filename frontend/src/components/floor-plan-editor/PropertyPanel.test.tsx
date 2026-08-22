@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PropertyPanel } from './PropertyPanel';
-import { SeatType, SeatStatus, type Seat } from '@seat-mgmt/shared';
+import { SeatType, SeatStatus, type SeatWithAssignee } from '@seat-mgmt/shared';
 
 // mock window.confirm
 beforeEach(() => {
@@ -14,7 +14,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-const mockSeat: Seat = {
+const mockSeat: SeatWithAssignee = {
   id: 1,
   code: 'A-001',
   area: 'A区',
@@ -26,6 +26,8 @@ const mockSeat: Seat = {
   floorPlanId: 1,
   status: SeatStatus.AVAILABLE,
   createdAt: '2024-01-01T00:00:00Z',
+  assigneeName: null,
+  assigneeEmpNo: null,
 };
 
 describe('PropertyPanel', () => {

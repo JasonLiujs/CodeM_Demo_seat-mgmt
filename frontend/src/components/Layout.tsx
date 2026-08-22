@@ -8,6 +8,7 @@ const navItems = [
   { to: '/dashboard', label: '仪表盘' },
   { to: '/seat-map', label: '工位地图' },
   { to: '/seat-management', label: '工位管理' },
+{ to: '/seat-assignment', label: '工位分配' },
 { to: '/employee-management', label: '员工管理' },
   ];
 
