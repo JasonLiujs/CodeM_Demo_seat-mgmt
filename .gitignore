@@ -13,3 +13,4 @@ data/
 coverage/
 .vite/
 *.tsbuildinfo
+.codem-dev/
