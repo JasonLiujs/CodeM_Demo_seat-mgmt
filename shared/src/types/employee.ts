@@ -3,7 +3,7 @@
  * 需求 7080732492：员工数据管理与 CSV 批量导入
  */
 
-import type { SeatWithAssignee } from './index';
+import type { SeatWithAssignee } from './index.js';
 
 // ============================================================================
 // 部门 DTO

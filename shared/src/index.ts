@@ -6,6 +6,6 @@
  * （通过 npm workspace symlink），不经过编译输出 .js，
  * 因此 import 路径不带 .js 扩展名。
  */
-export * from './types/index';
-export * from './types/pagination';
-export * from './types/employee';
+export * from './types/index.js';
+export * from './types/pagination.js';
+export * from './types/employee.js';
