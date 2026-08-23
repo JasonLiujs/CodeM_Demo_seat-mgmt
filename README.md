@@ -24,6 +24,7 @@ docker compose --profile dev up
 ```
 
 开发模式下：
+
 - 前端 Vite dev server 监听 `http://localhost:5173`，自动代理 `/api` 和 `/healthz` 到后端
 - 后端 Express 监听 `http://localhost:3001`
 
@@ -43,6 +44,7 @@ npm test
 ## 部署
 
 代码 push 到 `main` 分支后，GitHub Actions 自动：
+
 1. 安装依赖并运行测试
 2. 构建 Docker 镜像
 3. 部署到生产服务器

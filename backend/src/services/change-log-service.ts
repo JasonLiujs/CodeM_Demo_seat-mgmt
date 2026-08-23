@@ -5,11 +5,7 @@
 
 import { getDb } from '../db/connection.js';
 import { AppError } from '../middleware/error.js';
-import type {
-  ChangeLog,
-  ChangeLogAction,
-  ChangeLogWithDetail,
-} from '@seat-mgmt/shared';
+import type { ChangeLog, ChangeLogAction, ChangeLogWithDetail } from '@seat-mgmt/shared';
 
 /** 变更日志联表查询结果行 */
 interface ChangeLogJoinRow {
@@ -117,9 +113,7 @@ export class ChangeLogService {
       params.push(filter.endDate);
     }
 
-    const whereClause = conditions.length > 0
-      ? `WHERE ${conditions.join(' AND ')}`
-      : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     return { whereClause, params };
   }
@@ -205,7 +199,9 @@ export class ChangeLogService {
       ORDER BY cl.id DESC
       LIMIT ?
     `;
-    const rows = db.prepare(dataSql).all(...params, ChangeLogService.EXPORT_MAX_ROWS) as ChangeLogJoinRow[];
+    const rows = db
+      .prepare(dataSql)
+      .all(...params, ChangeLogService.EXPORT_MAX_ROWS) as ChangeLogJoinRow[];
 
     return rows.map(mapJoinRow);
   }
@@ -245,21 +241,17 @@ export class ChangeLogService {
         const newSeat = log.newSeatCode ?? (log.newSeatId != null ? `#${log.newSeatId}` : '');
         seatCell = `${oldSeat} → ${newSeat}`;
       }
-      const employeeDisplay = log.employeeName != null
-        ? `${log.employeeName}${log.employeeEmpNo ? `(${log.employeeEmpNo})` : ''}`
-        : '';
+      const employeeDisplay =
+        log.employeeName != null
+          ? `${log.employeeName}${log.employeeEmpNo ? `(${log.employeeEmpNo})` : ''}`
+          : '';
       const actionLabel = ChangeLogService.ACTION_LABELS[log.action] ?? log.action;
       const reason = log.reason ?? '';
 
       // 列序与需求/前端一致：时间,操作人,工位,员工,操作类型,原因
-      const row = [
-        log.createdAt,
-        log.operator,
-        seatCell,
-        employeeDisplay,
-        actionLabel,
-        reason,
-      ].map(escapeCsvField).join(',');
+      const row = [log.createdAt, log.operator, seatCell, employeeDisplay, actionLabel, reason]
+        .map(escapeCsvField)
+        .join(',');
       lines.push(row);
     }
 

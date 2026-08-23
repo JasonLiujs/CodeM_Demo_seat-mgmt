@@ -4,7 +4,12 @@
  */
 
 import { useState, useEffect, useCallback, type ChangeEvent } from 'react';
-import type { EmployeeWithDepartment, Department, CsvImportResult, PaginatedResponse } from '@seat-mgmt/shared';
+import type {
+  EmployeeWithDepartment,
+  Department,
+  CsvImportResult,
+  PaginatedResponse,
+} from '@seat-mgmt/shared';
 import { apiGet, apiPut, apiDelete } from '../../api/client';
 import { TableSkeleton, EmptyState } from '../../components/feedback';
 
@@ -172,7 +177,8 @@ export function EmployeeManagementPage() {
       {/* 导入结果提示 */}
       {importResult && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-          导入完成：共 {importResult.total} 行，新增 {importResult.inserted} 条，跳过 {importResult.skipped} 条
+          导入完成：共 {importResult.total} 行，新增 {importResult.inserted} 条，跳过{' '}
+          {importResult.skipped} 条
           {importResult.errors.length > 0 && `，错误 ${importResult.errors.length} 条`}
         </div>
       )}
@@ -197,7 +203,9 @@ export function EmployeeManagementPage() {
         >
           <option value="">全部部门</option>
           {departments.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
           ))}
         </select>
         <button
@@ -226,21 +234,33 @@ export function EmployeeManagementPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">工号</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">部门</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">创建时间</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                ID
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                工号
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                姓名
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                部门
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                创建时间
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                操作
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <TableSkeleton columns={6} />
-                ) : employees.length === 0 ? (
+            ) : employees.length === 0 ? (
               <tr>
-            <td colSpan={6}>
-              <EmptyState message="暂无员工数据" />
+                <td colSpan={6}>
+                  <EmptyState message="暂无员工数据" />
                 </td>
               </tr>
             ) : (
@@ -266,12 +286,16 @@ export function EmployeeManagementPage() {
                       <td className="px-4 py-3">
                         <select
                           value={editForm.departmentId}
-                          onChange={(e) => setEditForm({ ...editForm, departmentId: e.target.value })}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, departmentId: e.target.value })
+                          }
                           className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
                         >
                           <option value="">无部门</option>
                           {departments.map((d) => (
-                            <option key={d.id} value={d.id}>{d.name}</option>
+                            <option key={d.id} value={d.id}>
+                              {d.name}
+                            </option>
                           ))}
                         </select>
                       </td>
@@ -295,7 +319,9 @@ export function EmployeeManagementPage() {
                     <>
                       <td className="px-4 py-3 text-sm text-gray-800">{emp.empNo}</td>
                       <td className="px-4 py-3 text-sm text-gray-800">{emp.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-800">{emp.departmentName || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-800">
+                        {emp.departmentName || '-'}
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-500">{emp.createdAt}</td>
                       <td className="px-4 py-3">
                         <button

@@ -96,9 +96,7 @@ export function ChangeHistoryPage() {
     try {
       const result = await changeLogApi.listChangeLogs({
         action: (currentFilters.action || undefined) as ChangeLogAction | undefined,
-        departmentId: currentFilters.departmentId
-          ? Number(currentFilters.departmentId)
-          : undefined,
+        departmentId: currentFilters.departmentId ? Number(currentFilters.departmentId) : undefined,
         startDate: currentFilters.startDate || undefined,
         endDate: currentFilters.endDate || undefined,
         page: p,
@@ -143,9 +141,7 @@ export function ChangeHistoryPage() {
     try {
       changeLogApi.exportChangeLogs({
         action: (appliedFilters.action || undefined) as ChangeLogAction | undefined,
-        departmentId: appliedFilters.departmentId
-          ? Number(appliedFilters.departmentId)
-          : undefined,
+        departmentId: appliedFilters.departmentId ? Number(appliedFilters.departmentId) : undefined,
         startDate: appliedFilters.startDate || undefined,
         endDate: appliedFilters.endDate || undefined,
       });
@@ -263,27 +259,29 @@ export function ChangeHistoryPage() {
         {loading && !data ? (
           <table className="w-full">
             <thead className="bg-gray-50">
-          <tr>
-        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">ID</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">时间</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作类型</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作人</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">工位</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">员工</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">部门</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">原因</th>
-                </tr>
-              </thead>
-              <TableSkeleton columns={8} />
-            </table>
-          ) : data && data.data.length > 0 ? (
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">时间</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作类型</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作人</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">工位</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">员工</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">部门</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">原因</th>
+              </tr>
+            </thead>
+            <TableSkeleton columns={8} />
+          </table>
+        ) : data && data.data.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">ID</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">时间</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作类型</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                    操作类型
+                  </th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作人</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">工位</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">员工</th>
@@ -298,8 +296,10 @@ export function ChangeHistoryPage() {
                   // 工位显示：transfer 显示新旧工位，其他显示当前工位
                   let seatDisplay = log.seatCode ?? (log.seatId != null ? `#${log.seatId}` : '—');
                   if (log.action === 'transfer') {
-                    const oldSeat = log.oldSeatCode ?? (log.oldSeatId != null ? `#${log.oldSeatId}` : '?');
-                    const newSeat = log.newSeatCode ?? (log.newSeatId != null ? `#${log.newSeatId}` : '?');
+                    const oldSeat =
+                      log.oldSeatCode ?? (log.oldSeatId != null ? `#${log.oldSeatId}` : '?');
+                    const newSeat =
+                      log.newSeatCode ?? (log.newSeatId != null ? `#${log.newSeatId}` : '?');
                     seatDisplay = `${oldSeat} → ${newSeat}`;
                   }
                   return (
@@ -337,7 +337,7 @@ export function ChangeHistoryPage() {
           </div>
         ) : (
           <EmptyState message="暂无变更记录" icon="📋" />
-            )}
+        )}
       </div>
 
       {/* 分页 */}

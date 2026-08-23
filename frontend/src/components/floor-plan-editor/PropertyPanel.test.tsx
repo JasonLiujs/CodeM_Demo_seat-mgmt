@@ -66,7 +66,9 @@ describe('PropertyPanel', () => {
   });
 
   it('seat 变化时同步本地状态', async () => {
-    const { rerender } = render(<PropertyPanel seat={mockSeat} onChange={vi.fn()} onDelete={vi.fn()} />);
+    const { rerender } = render(
+      <PropertyPanel seat={mockSeat} onChange={vi.fn()} onDelete={vi.fn()} />,
+    );
     const updatedSeat = { ...mockSeat, code: 'B-999', area: 'C区' };
     rerender(<PropertyPanel seat={updatedSeat} onChange={vi.fn()} onDelete={vi.fn()} />);
     await waitFor(() => {

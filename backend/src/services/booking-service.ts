@@ -71,7 +71,14 @@ export class BookingService {
    * 查询预约列表（分页 + 筛选）
    * 支持按 seatId/employeeId/status/startDate/endDate 筛选
    */
-  listBookings(filter: BookingFilterDto & { startDate?: string; endDate?: string; page?: number; pageSize?: number }): PaginatedResponse<BookingWithDetail> {
+  listBookings(
+    filter: BookingFilterDto & {
+      startDate?: string;
+      endDate?: string;
+      page?: number;
+      pageSize?: number;
+    },
+  ): PaginatedResponse<BookingWithDetail> {
     const db = getDb();
     const page = filter.page ?? 1;
     const pageSize = filter.pageSize ?? 20;
@@ -140,7 +147,7 @@ export class BookingService {
 
     // 校验工位存在
     const seat = db.prepare('SELECT id, code, status FROM seats WHERE id = ?').get(data.seatId) as
-      | { id: number; code: string; status: string } | undefined;
+      { id: number; code: string; status: string } | undefined;
     if (!seat) {
       throw new AppError(404, `工位 ID ${data.seatId} 不存在`, 'SEAT_NOT_FOUND');
     }
@@ -151,17 +158,22 @@ export class BookingService {
     }
 
     // 校验员工存在
-    const employee = db.prepare('SELECT id, name FROM employees WHERE id = ?').get(data.employeeId) as
-      | { id: number; name: string } | undefined;
+    const employee = db
+      .prepare('SELECT id, name FROM employees WHERE id = ?')
+      .get(data.employeeId) as { id: number; name: string } | undefined;
     if (!employee) {
       throw new AppError(404, `员工 ID ${data.employeeId} 不存在`, 'EMPLOYEE_NOT_FOUND');
     }
 
     // 时段冲突检测：同一 seat_id 下，active（pending/confirmed）预约的时段不能与新预约重叠
-    const activeBookings = db.prepare(`
+    const activeBookings = db
+      .prepare(
+        `
       SELECT start_time, end_time FROM bookings
       WHERE seat_id = ? AND status IN ('pending', 'confirmed')
-    `).all(data.seatId) as { start_time: string; end_time: string }[];
+    `,
+      )
+      .all(data.seatId) as { start_time: string; end_time: string }[];
 
     for (const existing of activeBookings) {
       if (isTimeOverlap(data.startTime, data.endTime, existing.start_time, existing.end_time)) {
@@ -174,10 +186,14 @@ export class BookingService {
     }
 
     // 插入预约记录（默认 status='confirmed'）
-    const result = db.prepare(`
+    const result = db
+      .prepare(
+        `
       INSERT INTO bookings (seat_id, employee_id, start_time, end_time, status)
       VALUES (?, ?, ?, ?, ?)
-    `).run(data.seatId, data.employeeId, data.startTime, data.endTime, BookingStatus.CONFIRMED);
+    `,
+      )
+      .run(data.seatId, data.employeeId, data.startTime, data.endTime, BookingStatus.CONFIRMED);
 
     const bookingId = result.lastInsertRowid as number;
 
@@ -185,10 +201,12 @@ export class BookingService {
     db.prepare('UPDATE seats SET status = ? WHERE id = ?').run('reserved', data.seatId);
 
     // 写变更日志
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO change_logs (action, seat_id, employee_id, operator, reason)
       VALUES (?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       ChangeLogAction.BOOK,
       data.seatId,
       data.employeeId,
@@ -197,14 +215,18 @@ export class BookingService {
     );
 
     // 查回完整预约详情
-    const row = db.prepare(`
+    const row = db
+      .prepare(
+        `
       SELECT b.*, s.code AS seat_code, s.area AS seat_area,
              e.name AS employee_name, e.emp_no AS employee_emp_no
       FROM bookings b
       LEFT JOIN seats s ON b.seat_id = s.id
       LEFT JOIN employees e ON b.employee_id = e.id
       WHERE b.id = ?
-    `).get(bookingId) as BookingJoinRow;
+    `,
+      )
+      .get(bookingId) as BookingJoinRow;
 
     return mapJoinRow(row);
   }
@@ -216,12 +238,17 @@ export class BookingService {
   cancelBooking(id: number, operator: string): void {
     const db = getDb();
 
-    const booking = db.prepare(`
+    const booking = db
+      .prepare(
+        `
       SELECT b.id, b.seat_id, b.status, s.code AS seat_code
       FROM bookings b
       LEFT JOIN seats s ON b.seat_id = s.id
       WHERE b.id = ?
-    `).get(id) as { id: number; seat_id: number; status: string; seat_code: string | null } | undefined;
+    `,
+      )
+      .get(id) as
+      { id: number; seat_id: number; status: string; seat_code: string | null } | undefined;
 
     if (!booking) {
       throw new AppError(404, `预约 ID ${id} 不存在`, 'BOOKING_NOT_FOUND');
@@ -231,17 +258,25 @@ export class BookingService {
       throw new AppError(409, `预约 ${id} 已取消`, 'BOOKING_ALREADY_CANCELLED');
     }
     if (booking.status === 'expired' || booking.status === 'completed') {
-      throw new AppError(409, `预约 ${id} 已${booking.status === 'expired' ? '过期' : '完成'}，不可取消`, 'BOOKING_NOT_CANCELLABLE');
+      throw new AppError(
+        409,
+        `预约 ${id} 已${booking.status === 'expired' ? '过期' : '完成'}，不可取消`,
+        'BOOKING_NOT_CANCELLABLE',
+      );
     }
 
     // 更新预约状态为 cancelled
     db.prepare('UPDATE bookings SET status = ? WHERE id = ?').run(BookingStatus.CANCELLED, id);
 
     // 检查该工位是否还有其他 active 预约
-    const activeCount = db.prepare(`
+    const activeCount = db
+      .prepare(
+        `
       SELECT COUNT(*) as count FROM bookings
       WHERE seat_id = ? AND status IN ('pending', 'confirmed')
-    `).get(booking.seat_id) as { count: number };
+    `,
+      )
+      .get(booking.seat_id) as { count: number };
 
     if (activeCount.count === 0) {
       // 无其他 active 预约，恢复工位状态为 available
@@ -249,10 +284,12 @@ export class BookingService {
     }
 
     // 写变更日志
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO change_logs (action, seat_id, reason, operator)
       VALUES (?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       ChangeLogAction.CANCEL_BOOKING,
       booking.seat_id,
       `取消预约 ${id}（工位 ${booking.seat_code ?? booking.seat_id}）`,
@@ -270,10 +307,14 @@ export class BookingService {
     const now = new Date().toISOString();
 
     // 查找到期的 active 预约
-    const expired = db.prepare(`
+    const expired = db
+      .prepare(
+        `
       SELECT id, seat_id FROM bookings
       WHERE end_time < ? AND status IN ('pending', 'confirmed')
-    `).all(now) as { id: number; seat_id: number }[];
+    `,
+      )
+      .all(now) as { id: number; seat_id: number }[];
 
     if (expired.length === 0) {
       return 0;
@@ -291,10 +332,14 @@ export class BookingService {
         updateStmt.run(BookingStatus.EXPIRED, booking.id);
 
         // 检查工位是否还有其他 active 预约
-        const activeCount = db.prepare(`
+        const activeCount = db
+          .prepare(
+            `
           SELECT COUNT(*) as count FROM bookings
           WHERE seat_id = ? AND status IN ('pending', 'confirmed')
-        `).get(booking.seat_id) as { count: number };
+        `,
+          )
+          .get(booking.seat_id) as { count: number };
 
         if (activeCount.count === 0) {
           db.prepare('UPDATE seats SET status = ? WHERE id = ?').run('available', booking.seat_id);

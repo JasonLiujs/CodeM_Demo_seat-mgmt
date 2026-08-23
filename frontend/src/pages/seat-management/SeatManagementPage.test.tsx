@@ -6,7 +6,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SeatManagementPage } from './SeatManagementPage';
-import { SeatType, SeatStatus, type PaginatedResponse, type SeatWithAssignee } from '@seat-mgmt/shared';
+import {
+  SeatType,
+  SeatStatus,
+  type PaginatedResponse,
+  type SeatWithAssignee,
+} from '@seat-mgmt/shared';
 
 // 模拟 seatApi
 vi.mock('../../api/seat-api', () => ({

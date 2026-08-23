@@ -7,9 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { assignmentApi, changeLogApi } from '../../api/assignment-api';
 import { seatApi } from '../../api/seat-api';
 import { apiGet } from '../../api/client';
-import {
-  SeatStatus,
-} from '@seat-mgmt/shared';
+import { SeatStatus } from '@seat-mgmt/shared';
 import type {
   Seat,
   EmployeeWithDepartment,
@@ -65,12 +63,14 @@ export function SeatAssignmentPage() {
       {/* Tab 导航 */}
       <div className="border-b border-gray-200">
         <nav className="flex gap-6">
-          {([
-            { key: 'assign', label: '分配管理' },
-            { key: 'transfer', label: '工位变更' },
-            { key: 'batch', label: '批量分配' },
-            { key: 'history', label: '变更历史' },
-          ] as const).map((tab) => (
+          {(
+            [
+              { key: 'assign', label: '分配管理' },
+              { key: 'transfer', label: '工位变更' },
+              { key: 'batch', label: '批量分配' },
+              { key: 'history', label: '变更历史' },
+            ] as const
+          ).map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -135,28 +135,28 @@ function AssignTab() {
   /** 执行分配 */
   const handleAssign = async () => {
     // 内联校验
-      const errors: { seat?: string; employee?: string } = {};
-      if (!selectedSeatId) {
-    errors.seat = '请选择工位';
+    const errors: { seat?: string; employee?: string } = {};
+    if (!selectedSeatId) {
+      errors.seat = '请选择工位';
     }
     if (!selectedEmployeeId) {
-    errors.employee = '请选择员工';
+      errors.employee = '请选择员工';
     }
-      setFormErrors(errors);
-        if (Object.keys(errors).length > 0) {
-        return;
-        }
-      setLoading(true);
-      setError(null);
-      setSuccess(null);
-      try {
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
       await assignmentApi.assign({
-    seatId: Number(selectedSeatId),
-      employeeId: Number(selectedEmployeeId),
-    assignedBy,
+        seatId: Number(selectedSeatId),
+        employeeId: Number(selectedEmployeeId),
+        assignedBy,
       });
-    setSuccess('工位分配成功');
-  setSelectedSeatId('');
+      setSuccess('工位分配成功');
+      setSelectedSeatId('');
       setSelectedEmployeeId('');
       await loadData();
     } catch (err) {
@@ -181,85 +181,86 @@ function AssignTab() {
 
       {loading ? (
         <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-<Skeleton className="h-5 w-32" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-5 w-32" />
           <Skeleton className="h-10 w-full" />
-          </div>
-            ) : (
-            <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800">分配工位给员工</h3>
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+          <h3 className="text-lg font-semibold text-gray-800">分配工位给员工</h3>
 
-            {/* 选择工位 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">选择工位（仅显示空闲）</label>
-                <select
+          {/* 选择工位 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              选择工位（仅显示空闲）
+            </label>
+            <select
               value={selectedSeatId}
-            onChange={(e) => {
-          setSelectedSeatId(e.target.value ? Number(e.target.value) : '');
-        setFormErrors((prev) => ({ ...prev, seat: undefined }));
-}}
-        className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-        formErrors.seat ? 'border-red-400' : 'border-gray-300'
-          }`}
-          >
-            <option value="">请选择工位</option>
-            {seats.map((seat) => (
-            <option key={seat.id} value={seat.id}>
-          {seat.code} — {seat.area} ({seat.type})
-            </option>
-            ))}
-              </select>
-                {formErrors.seat && (
-              <p className="text-sm text-red-500 mt-1">{formErrors.seat}</p>
+              onChange={(e) => {
+                setSelectedSeatId(e.target.value ? Number(e.target.value) : '');
+                setFormErrors((prev) => ({ ...prev, seat: undefined }));
+              }}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                formErrors.seat ? 'border-red-400' : 'border-gray-300'
+              }`}
+            >
+              <option value="">请选择工位</option>
+              {seats.map((seat) => (
+                <option key={seat.id} value={seat.id}>
+                  {seat.code} — {seat.area} ({seat.type})
+                </option>
+              ))}
+            </select>
+            {formErrors.seat && <p className="text-sm text-red-500 mt-1">{formErrors.seat}</p>}
+          </div>
+
+          {/* 选择员工 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">选择员工</label>
+            <select
+              value={selectedEmployeeId}
+              onChange={(e) => {
+                setSelectedEmployeeId(e.target.value ? Number(e.target.value) : '');
+                setFormErrors((prev) => ({ ...prev, employee: undefined }));
+              }}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                formErrors.employee ? 'border-red-400' : 'border-gray-300'
+              }`}
+            >
+              <option value="">请选择员工</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.empNo} — {emp.name}
+                  {emp.departmentName ? ` (${emp.departmentName})` : ''}
+                </option>
+              ))}
+            </select>
+            {formErrors.employee && (
+              <p className="text-sm text-red-500 mt-1">{formErrors.employee}</p>
             )}
           </div>
 
-{/* 选择员工 */}
-        <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">选择员工</label>
-          <select
-          value={selectedEmployeeId}
-            onChange={(e) => {
-            setSelectedEmployeeId(e.target.value ? Number(e.target.value) : '');
-            setFormErrors((prev) => ({ ...prev, employee: undefined }));
-            }}
-          className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-        formErrors.employee ? 'border-red-400' : 'border-gray-300'
-}`}
-        >
-        <option value="">请选择员工</option>
-          {employees.map((emp) => (
-          <option key={emp.id} value={emp.id}>
-          {emp.empNo} — {emp.name}{emp.departmentName ? ` (${emp.departmentName})` : ''}
-        </option>
-          ))}
-        </select>
-      {formErrors.employee && (
-            <p className="text-sm text-red-500 mt-1">{formErrors.employee}</p>
-          )}
-        </div>
+          {/* 操作人 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">操作人</label>
+            <input
+              type="text"
+              value={assignedBy}
+              onChange={(e) => setAssignedBy(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-        {/* 操作人 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">操作人</label>
-          <input
-            type="text"
-            value={assignedBy}
-            onChange={(e) => setAssignedBy(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          {/* 提交按钮 */}
+          <button
+            onClick={handleAssign}
+            disabled={loading || !selectedSeatId || !selectedEmployeeId}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? '分配中...' : '确认分配'}
+          </button>
         </div>
-
-        {/* 提交按钮 */}
-        <button
-          onClick={handleAssign}
-          disabled={loading || !selectedSeatId || !selectedEmployeeId}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? '分配中...' : '确认分配'}
-        </button>
-      </div>
       )}
     </div>
   );
@@ -348,14 +349,17 @@ function TransferTab() {
             <option value="">请选择员工</option>
             {employees.map((emp) => (
               <option key={emp.id} value={emp.id}>
-                {emp.empNo} — {emp.name}{emp.departmentName ? ` (${emp.departmentName})` : ''}
+                {emp.empNo} — {emp.name}
+                {emp.departmentName ? ` (${emp.departmentName})` : ''}
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">选择新工位（仅显示空闲）</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            选择新工位（仅显示空闲）
+          </label>
           <select
             value={selectedSeatId}
             onChange={(e) => setSelectedSeatId(e.target.value ? Number(e.target.value) : '')}
@@ -431,51 +435,51 @@ function BatchTab() {
   /** 添加一行 */
   const addPair = () => {
     setPairs([...pairs, { seatId: '', employeeId: '' }]);
-  setPairErrors([...pairErrors, {}]);
-};
-
-  /** 删除一行 */
-    const removePair = (index: number) => {
-  setPairs(pairs.filter((_, i) => i !== index));
-setPairErrors(pairErrors.filter((_, i) => i !== index));
+    setPairErrors([...pairErrors, {}]);
   };
 
-    /** 更新某行 */
-    const updatePair = (index: number, field: keyof BatchPair, value: string) => {
-    const updated = [...pairs];
-  updated[index] = { ...updated[index], [field]: value ? Number(value) : '' };
-setPairs(updated);
-  // 清除该行该字段的校验错误
-  setPairErrors((prev) => {
-    const next = [...prev];
-    next[index] = { ...next[index], [field]: undefined };
-      return next;
-      });
-    };
+  /** 删除一行 */
+  const removePair = (index: number) => {
+    setPairs(pairs.filter((_, i) => i !== index));
+    setPairErrors(pairErrors.filter((_, i) => i !== index));
+  };
 
-    /** 执行批量分配 */
-    const handleBatchAssign = async () => {
-      // 内联校验：每一行如果有任意一个字段填了，另一个也必须填
-      const errors = pairs.map((p) => {
-        const e: { seat?: string; employee?: string } = {};
-        if (p.seatId && !p.employeeId) {
-          e.employee = '请选择员工';
-        }
-        if (p.employeeId && !p.seatId) {
-          e.seat = '请选择工位';
-        }
-        return e;
-      });
-      setPairErrors(errors);
-      const validPairs = pairs.filter((p) => p.seatId && p.employeeId);
-      if (validPairs.length === 0) {
-        setError('请至少添加一组有效的工位-员工配对');
-        return;
+  /** 更新某行 */
+  const updatePair = (index: number, field: keyof BatchPair, value: string) => {
+    const updated = [...pairs];
+    updated[index] = { ...updated[index], [field]: value ? Number(value) : '' };
+    setPairs(updated);
+    // 清除该行该字段的校验错误
+    setPairErrors((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: undefined };
+      return next;
+    });
+  };
+
+  /** 执行批量分配 */
+  const handleBatchAssign = async () => {
+    // 内联校验：每一行如果有任意一个字段填了，另一个也必须填
+    const errors = pairs.map((p) => {
+      const e: { seat?: string; employee?: string } = {};
+      if (p.seatId && !p.employeeId) {
+        e.employee = '请选择员工';
       }
-      // 如果有任何行的校验错误，阻止提交
-      if (errors.some((e) => Object.keys(e).length > 0)) {
-        return;
+      if (p.employeeId && !p.seatId) {
+        e.seat = '请选择工位';
       }
+      return e;
+    });
+    setPairErrors(errors);
+    const validPairs = pairs.filter((p) => p.seatId && p.employeeId);
+    if (validPairs.length === 0) {
+      setError('请至少添加一组有效的工位-员工配对');
+      return;
+    }
+    // 如果有任何行的校验错误，阻止提交
+    if (errors.some((e) => Object.keys(e).length > 0)) {
+      return;
+    }
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -529,39 +533,39 @@ setPairs(updated);
               <span className="text-sm text-gray-400 w-8">{index + 1}.</span>
               <div className="flex-1">
                 <select
-                value={pair.seatId}
-                onChange={(e) => updatePair(index, 'seatId', e.target.value)}
-              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                pairErrors[index]?.seat ? 'border-red-400' : 'border-gray-300'
-                }`}
-                  >
-                    <option value="">选择工位</option>
+                  value={pair.seatId}
+                  onChange={(e) => updatePair(index, 'seatId', e.target.value)}
+                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    pairErrors[index]?.seat ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">选择工位</option>
                   {seats.map((seat) => (
-                <option key={seat.id} value={seat.id}>
-              {seat.code} — {seat.area}
-              </option>
-              ))}
+                    <option key={seat.id} value={seat.id}>
+                      {seat.code} — {seat.area}
+                    </option>
+                  ))}
                 </select>
                 {pairErrors[index]?.seat && (
-                <p className="text-xs text-red-500 mt-1">{pairErrors[index].seat}</p>
-              )}
-                </div>
-                <span className="text-gray-400">→</span>
-                  <div className="flex-1">
-                    <select
+                  <p className="text-xs text-red-500 mt-1">{pairErrors[index].seat}</p>
+                )}
+              </div>
+              <span className="text-gray-400">→</span>
+              <div className="flex-1">
+                <select
                   value={pair.employeeId}
-                onChange={(e) => updatePair(index, 'employeeId', e.target.value)}
-              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              pairErrors[index]?.employee ? 'border-red-400' : 'border-gray-300'
-                }`}
-                  >
+                  onChange={(e) => updatePair(index, 'employeeId', e.target.value)}
+                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    pairErrors[index]?.employee ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                >
                   <option value="">选择员工</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                {emp.empNo} — {emp.name}
-              </option>
-            ))}
-          </select>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.empNo} — {emp.name}
+                    </option>
+                  ))}
+                </select>
                 {pairErrors[index]?.employee && (
                   <p className="text-xs text-red-500 mt-1">{pairErrors[index].employee}</p>
                 )}
@@ -675,7 +679,10 @@ function HistoryTab() {
             <label className="block text-sm text-gray-600 mb-1">操作类型</label>
             <select
               value={filterAction}
-              onChange={(e) => { setFilterAction(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setFilterAction(e.target.value);
+                setPage(1);
+              }}
               className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
             >
               <option value="">全部</option>
@@ -689,12 +696,17 @@ function HistoryTab() {
             <label className="block text-sm text-gray-600 mb-1">部门</label>
             <select
               value={filterDept}
-              onChange={(e) => { setFilterDept(e.target.value ? Number(e.target.value) : ''); setPage(1); }}
+              onChange={(e) => {
+                setFilterDept(e.target.value ? Number(e.target.value) : '');
+                setPage(1);
+              }}
               className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
             >
               <option value="">全部</option>
               {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
               ))}
             </select>
           </div>
@@ -703,7 +715,10 @@ function HistoryTab() {
             <input
               type="text"
               value={filterEmployee}
-              onChange={(e) => { setFilterEmployee(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setFilterEmployee(e.target.value);
+                setPage(1);
+              }}
               className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-28"
               placeholder="如 1"
             />
@@ -713,7 +728,10 @@ function HistoryTab() {
             <input
               type="text"
               value={filterSeat}
-              onChange={(e) => { setFilterSeat(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setFilterSeat(e.target.value);
+                setPage(1);
+              }}
               className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-28"
               placeholder="如 1"
             />
@@ -732,37 +750,59 @@ function HistoryTab() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">员工</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">工位变更</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作人</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">原因</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">时间</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                ID
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                操作
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                员工
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                工位变更
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                操作人
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                原因
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                时间
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">加载中...</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                  加载中...
+                </td>
               </tr>
             ) : logs.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">暂无变更记录</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                  暂无变更记录
+                </td>
               </tr>
             ) : (
               logs.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-500">{log.id}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs ${actionColors[log.action] || 'bg-gray-100 text-gray-800'}`}>
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded text-xs ${actionColors[log.action] || 'bg-gray-100 text-gray-800'}`}
+                    >
                       {actionLabels[log.action] || log.action}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-800">
                     {log.employeeName ? `${log.employeeName} (${log.employeeEmpNo})` : '-'}
                     {log.employeeDepartmentName && (
-                      <span className="text-gray-400 text-xs ml-1">[{log.employeeDepartmentName}]</span>
+                      <span className="text-gray-400 text-xs ml-1">
+                        [{log.employeeDepartmentName}]
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
@@ -771,7 +811,10 @@ function HistoryTab() {
                       : log.newSeatCode || log.seatCode || '-'}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{log.operator}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate" title={log.reason || ''}>
+                  <td
+                    className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate"
+                    title={log.reason || ''}
+                  >
                     {log.reason || '-'}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500">{log.createdAt}</td>

@@ -57,17 +57,15 @@ describe('GET /api/seats', () => {
 
 describe('POST /api/seats', () => {
   it('应创建新工位返回 201', async () => {
-    const res = await request(app)
-      .post('/api/seats')
-      .send({
-        code: 'C-001',
-        area: 'C区',
-        type: 'standard',
-        x: 100,
-        y: 200,
-        w: 60,
-        h: 60,
-      });
+    const res = await request(app).post('/api/seats').send({
+      code: 'C-001',
+      area: 'C区',
+      type: 'standard',
+      x: 100,
+      y: 200,
+      w: 60,
+      h: 60,
+    });
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.data.code).toBe('C-001');
@@ -76,34 +74,28 @@ describe('POST /api/seats', () => {
   });
 
   it('缺少 code 应返回 400', async () => {
-    const res = await request(app)
-      .post('/api/seats')
-      .send({ area: 'C区', type: 'standard' });
+    const res = await request(app).post('/api/seats').send({ area: 'C区', type: 'standard' });
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
   });
 
   it('重复 code 应返回 409', async () => {
-    const res = await request(app)
-      .post('/api/seats')
-      .send({
-        code: 'A-001',
-        area: 'A区',
-        type: 'standard',
-        x: 0,
-        y: 0,
-        w: 60,
-        h: 60,
-      });
+    const res = await request(app).post('/api/seats').send({
+      code: 'A-001',
+      area: 'A区',
+      type: 'standard',
+      x: 0,
+      y: 0,
+      w: 60,
+      h: 60,
+    });
     expect(res.status).toBe(409);
   });
 });
 
 describe('PUT /api/seats/:id', () => {
   it('应更新工位返回 200', async () => {
-    const res = await request(app)
-      .put('/api/seats/1')
-      .send({ status: 'occupied', area: 'C区' });
+    const res = await request(app).put('/api/seats/1').send({ status: 'occupied', area: 'C区' });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.status).toBe('occupied');
@@ -111,9 +103,7 @@ describe('PUT /api/seats/:id', () => {
   });
 
   it('不存在的工位应返回 404', async () => {
-    const res = await request(app)
-      .put('/api/seats/99999')
-      .send({ status: 'available' });
+    const res = await request(app).put('/api/seats/99999').send({ status: 'available' });
     expect(res.status).toBe(404);
   });
 });

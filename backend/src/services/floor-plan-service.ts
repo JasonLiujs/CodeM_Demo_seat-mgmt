@@ -50,14 +50,25 @@ export class FloorPlanService {
    * @param height 高度
    * @returns 新创建的平面图
    */
-  createFloorPlan(name: string, imageUrl: string, width: number, height: number): FloorPlanResponse {
+  createFloorPlan(
+    name: string,
+    imageUrl: string,
+    width: number,
+    height: number,
+  ): FloorPlanResponse {
     const db = getDb();
-    const result = db.prepare(`
+    const result = db
+      .prepare(
+        `
       INSERT INTO floor_plans (name, image_url, width, height)
       VALUES (?, ?, ?, ?)
-    `).run(name, imageUrl, width, height);
+    `,
+      )
+      .run(name, imageUrl, width, height);
 
-    const row = db.prepare('SELECT * FROM floor_plans WHERE id = ?').get(result.lastInsertRowid) as FloorPlanRow;
+    const row = db
+      .prepare('SELECT * FROM floor_plans WHERE id = ?')
+      .get(result.lastInsertRowid) as FloorPlanRow;
     return mapRow(row);
   }
 }

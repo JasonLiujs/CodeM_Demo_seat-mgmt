@@ -95,7 +95,7 @@ describe('SeatAssignmentPage', () => {
   it('默认显示分配管理 Tab', async () => {
     renderPage();
     await waitFor(() => {
-  expect(screen.getByText('分配工位给员工')).toBeInTheDocument();
+      expect(screen.getByText('分配工位给员工')).toBeInTheDocument();
     });
   });
 
@@ -110,7 +110,7 @@ describe('SeatAssignmentPage', () => {
     // Tab 中有两个"批量分配"文本（导航+内容标题），用 getByRole 定位 Tab 按钮
     const batchTab = screen.getByRole('button', { name: '批量分配' });
     fireEvent.click(batchTab);
-  expect(screen.getByText('+ 添加一行')).toBeInTheDocument();
+    expect(screen.getByText('+ 添加一行')).toBeInTheDocument();
   });
 
   it('点击 Tab 可切换到变更历史', async () => {
@@ -136,31 +136,31 @@ describe('SeatAssignmentPage', () => {
     renderPage();
     // 等待表单渲染完成（loading 结束后）
     await waitFor(() => {
-    expect(screen.getByText('确认分配')).toBeInTheDocument();
+      expect(screen.getByText('确认分配')).toBeInTheDocument();
     });
-  // 未选择工位和员工时按钮应 disabled
-  const button = screen.getByText('确认分配');
+    // 未选择工位和员工时按钮应 disabled
+    const button = screen.getByText('确认分配');
     expect(button).toBeDisabled();
-      expect(assignmentApi.assign).not.toHaveBeenCalled();
-    });
+    expect(assignmentApi.assign).not.toHaveBeenCalled();
+  });
 
   it('批量分配 Tab 应能添加和删除行', () => {
     renderPage();
     const batchTab = screen.getByRole('button', { name: '批量分配' });
-fireEvent.click(batchTab);
+    fireEvent.click(batchTab);
 
     // 初始有1行，添加后应有2行（2个删除按钮）
     const addButton = screen.getByText('+ 添加一行');
-fireEvent.click(addButton);
+    fireEvent.click(addButton);
 
     // 应有2行（通过删除按钮数量判断）
     let removeButtons = screen.getAllByText('✕');
-expect(removeButtons).toHaveLength(2);
+    expect(removeButtons).toHaveLength(2);
 
     // 删除第一行
     fireEvent.click(removeButtons[0]);
     removeButtons = screen.queryAllByText('✕');
-  // 只剩1行时没有删除按钮
+    // 只剩1行时没有删除按钮
     expect(removeButtons).toHaveLength(0);
   });
 });

@@ -30,7 +30,7 @@ bookingsRouter.get('/', (req, res, next) => {
       ...filter,
       status: filter.status as BookingStatus | undefined,
       page,
-    pageSize,
+      pageSize,
     });
 
     res.json({ success: true, data: result });

@@ -80,7 +80,9 @@ export function FilterPanel({
         <select
           aria-label="按状态筛选"
           value={filters.status ?? ''}
-          onChange={(e) => onFilterChange({ ...filters, status: e.target.value as SeatStatus | '' })}
+          onChange={(e) =>
+            onFilterChange({ ...filters, status: e.target.value as SeatStatus | '' })
+          }
           className="border border-gray-300 rounded px-2 py-1.5 text-sm min-w-[140px] focus:outline-none focus:ring-2 focus:ring-blue-400"
         >
           {STATUS_FILTER_OPTIONS.map((opt) => (

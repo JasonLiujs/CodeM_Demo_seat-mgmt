@@ -67,7 +67,10 @@ function parseCsv(csvText: string): string[][] {
   let inQuotes = false;
 
   // 剥离 UTF-8 BOM（Windows Excel 导出常见）
-  const text = csvText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const text = csvText
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n');
 
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
@@ -140,9 +143,7 @@ export class EmployeeService {
       params.push(`%${filter.name}%`);
     }
 
-    const whereClause = conditions.length > 0
-      ? `WHERE ${conditions.join(' AND ')}`
-      : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // 查询总数
     const countSql = `SELECT COUNT(*) as total FROM employees e ${whereClause}`;
@@ -178,13 +179,17 @@ export class EmployeeService {
    */
   getEmployeeById(id: number): EmployeeWithDepartment {
     const db = getDb();
-    const row = db.prepare(`
+    const row = db
+      .prepare(
+        `
       SELECT e.id, e.emp_no, e.name, e.department_id, e.seat_id, e.created_at,
              d.name AS department_name
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
       WHERE e.id = ?
-    `).get(id) as EmployeeJoinRow | undefined;
+    `,
+      )
+      .get(id) as EmployeeJoinRow | undefined;
 
     if (!row) {
       throw new AppError(404, `员工 ID ${id} 不存在`, 'EMPLOYEE_NOT_FOUND');
@@ -204,12 +209,18 @@ export class EmployeeService {
       throw new AppError(409, `工号 ${data.empNo} 已存在`, 'EMPLOYEE_NO_CONFLICT');
     }
 
-    const result = db.prepare(`
+    const result = db
+      .prepare(
+        `
       INSERT INTO employees (emp_no, name, department_id)
       VALUES (?, ?, ?)
-    `).run(data.empNo, data.name, data.departmentId ?? null);
+    `,
+      )
+      .run(data.empNo, data.name, data.departmentId ?? null);
 
-    const row = db.prepare('SELECT * FROM employees WHERE id = ?').get(result.lastInsertRowid) as EmployeeRow;
+    const row = db
+      .prepare('SELECT * FROM employees WHERE id = ?')
+      .get(result.lastInsertRowid) as EmployeeRow;
     return {
       id: row.id,
       empNo: row.emp_no,
@@ -226,7 +237,8 @@ export class EmployeeService {
   updateEmployee(id: number, data: UpdateEmployeeDto): Employee {
     const db = getDb();
 
-    const existing = db.prepare('SELECT * FROM employees WHERE id = ?').get(id) as EmployeeRow | undefined;
+    const existing = db.prepare('SELECT * FROM employees WHERE id = ?').get(id) as
+      EmployeeRow | undefined;
     if (!existing) {
       throw new AppError(404, `员工 ID ${id} 不存在`, 'EMPLOYEE_NOT_FOUND');
     }
@@ -236,7 +248,9 @@ export class EmployeeService {
 
     if (data.empNo !== undefined) {
       // 检查工号是否与其他员工重复
-      const dup = db.prepare('SELECT id FROM employees WHERE emp_no = ? AND id != ?').get(data.empNo, id);
+      const dup = db
+        .prepare('SELECT id FROM employees WHERE emp_no = ? AND id != ?')
+        .get(data.empNo, id);
       if (dup) {
         throw new AppError(409, `工号 ${data.empNo} 已存在`, 'EMPLOYEE_NO_CONFLICT');
       }
@@ -301,20 +315,26 @@ export class EmployeeService {
     const db = getDb();
 
     // 查员工 + 部门名称
-    const empRow = db.prepare(`
+    const empRow = db
+      .prepare(
+        `
       SELECT e.id, e.emp_no, e.name, e.department_id, e.seat_id,
              d.name AS department_name
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
       WHERE e.emp_no = ?
-    `).get(empNo) as {
-      id: number;
-      emp_no: string;
-      name: string;
-      department_id: number | null;
-      seat_id: number | null;
-      department_name: string | null;
-    } | undefined;
+    `,
+      )
+      .get(empNo) as
+      | {
+          id: number;
+          emp_no: string;
+          name: string;
+          department_id: number | null;
+          seat_id: number | null;
+          department_name: string | null;
+        }
+      | undefined;
 
     if (!empRow) {
       throw new AppError(404, `工号 ${empNo} 不存在`, 'EMPLOYEE_NOT_FOUND');
@@ -337,7 +357,9 @@ export class EmployeeService {
       assignee_emp_no: string | null;
     }
 
-    const seatRow = db.prepare(`
+    const seatRow = db
+      .prepare(
+        `
       SELECT s.id, s.code, s.area, s.type, s.x, s.y, s.w, s.h,
              s.floor_plan_id, s.status, s.created_at,
              e2.name AS assignee_name, e2.emp_no AS assignee_emp_no
@@ -347,7 +369,9 @@ export class EmployeeService {
       WHERE a.employee_id = ? AND a.status = 'active'
       ORDER BY a.id DESC
       LIMIT 1
-    `).get(empRow.id) as SeatJoinRow | undefined;
+    `,
+      )
+      .get(empRow.id) as SeatJoinRow | undefined;
 
     let seat: SeatWithAssignee | null = null;
     if (seatRow) {
@@ -402,8 +426,14 @@ export class EmployeeService {
 
     // 检测表头：第一行如果包含 emp_no/工号 等关键词则视为表头
     const headerRow = rows[0].map((h) => h.trim().toLowerCase());
-    const hasHeader = headerRow.some((h) =>
-      h.includes('emp_no') || h.includes('工号') || h.includes('name') || h.includes('姓名') || h.includes('department') || h.includes('部门'),
+    const hasHeader = headerRow.some(
+      (h) =>
+        h.includes('emp_no') ||
+        h.includes('工号') ||
+        h.includes('name') ||
+        h.includes('姓名') ||
+        h.includes('department') ||
+        h.includes('部门'),
     );
 
     const dataRows = hasHeader ? rows.slice(1) : rows;

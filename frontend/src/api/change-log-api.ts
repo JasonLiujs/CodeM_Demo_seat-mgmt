@@ -3,17 +3,10 @@
  * 需求 7078969349：封装 change-logs 查询 + export 接口调用
  */
 
-import type {
-  ChangeLogWithDetail,
-  ChangeLogFilterDto,
-  PaginatedResponse,
-} from '@seat-mgmt/shared';
+import type { ChangeLogWithDetail, ChangeLogFilterDto, PaginatedResponse } from '@seat-mgmt/shared';
 
 /** 通用请求方法（解析 JSON 响应） */
-async function request<T>(
-  url: string,
-  options?: RequestInit,
-): Promise<T> {
+async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,

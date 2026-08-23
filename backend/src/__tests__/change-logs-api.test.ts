@@ -46,9 +46,7 @@ describe('GET /api/change-logs — 变更历史查询', () => {
     const res = await request(app).get('/api/change-logs');
     expect(res.status).toBe(200);
     expect(res.body.data.total).toBeGreaterThanOrEqual(1);
-    const assignLog = res.body.data.data.find(
-      (log: { action: string }) => log.action === 'assign',
-    );
+    const assignLog = res.body.data.data.find((log: { action: string }) => log.action === 'assign');
     expect(assignLog).toBeDefined();
     expect(assignLog.seatId).toBe(1);
     expect(assignLog.employeeId).toBe(1);
@@ -117,7 +115,9 @@ describe('GET /api/change-logs — 变更历史查询', () => {
 
     const res = await request(app).get('/api/change-logs?action=assign');
     expect(res.status).toBe(200);
-    expect(res.body.data.data.every((log: { action: string }) => log.action === 'assign')).toBe(true);
+    expect(res.body.data.data.every((log: { action: string }) => log.action === 'assign')).toBe(
+      true,
+    );
   });
 
   it('应支持按 departmentId 筛选', async () => {
@@ -135,8 +135,7 @@ describe('GET /api/change-logs — 变更历史查询', () => {
     // 所有日志的员工都应属于研发部
     expect(
       res.body.data.data.every(
-        (log: { employeeDepartmentId: number | null }) =>
-          log.employeeDepartmentId === 1,
+        (log: { employeeDepartmentId: number | null }) => log.employeeDepartmentId === 1,
       ),
     ).toBe(true);
   });
@@ -152,9 +151,7 @@ describe('GET /api/change-logs — 变更历史查询', () => {
     const res = await request(app).get('/api/change-logs?employeeId=1');
     expect(res.status).toBe(200);
     expect(
-      res.body.data.data.every(
-        (log: { employeeId: number | null }) => log.employeeId === 1,
-      ),
+      res.body.data.data.every((log: { employeeId: number | null }) => log.employeeId === 1),
     ).toBe(true);
   });
 
@@ -198,22 +195,25 @@ describe('GET /api/change-logs/export — CSV 导出', () => {
   });
 
   it('应返回 UTF-8 BOM 头', async () => {
-    const res = await request(app).get('/api/change-logs/export').buffer(true).parse((res, cb) => {
-    const chunks: Buffer[] = [];
-    res.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-    res.on('end', () => cb(null, Buffer.concat(chunks)));
-    });
+    const res = await request(app)
+      .get('/api/change-logs/export')
+      .buffer(true)
+      .parse((res, cb) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+        res.on('end', () => cb(null, Buffer.concat(chunks)));
+      });
     const buf = res.body as Buffer;
-  // BOM = 0xEF 0xBB 0xBF
-expect(buf[0]).toBe(0xef);
-  expect(buf[1]).toBe(0xbb);
+    // BOM = 0xEF 0xBB 0xBF
+    expect(buf[0]).toBe(0xef);
+    expect(buf[1]).toBe(0xbb);
     expect(buf[2]).toBe(0xbf);
-    });
+  });
 
-    it('无数据时应只包含表头', async () => {
+  it('无数据时应只包含表头', async () => {
     const res = await request(app).get('/api/change-logs/export');
     const csv = res.text;
-  const lines = csv.split('\n');
+    const lines = csv.split('\n');
     // 第一行为 BOM + 表头（列序与需求/前端一致）
     expect(lines[0]).toBe('\uFEFF时间,操作人,工位,员工,操作类型,原因');
     expect(lines).toHaveLength(1);
@@ -239,8 +239,7 @@ expect(buf[0]).toBe(0xef);
     await request(app)
       .post('/api/assignments')
       .send({ seatId: 1, employeeId: 1, assignedBy: 'admin' });
-    await request(app)
-      .delete('/api/assignments/1');
+    await request(app).delete('/api/assignments/1');
 
     const res = await request(app).get('/api/change-logs/export?action=assign');
     const csv = res.text;

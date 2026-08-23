@@ -35,9 +35,9 @@ function SeatShapeImpl({ seat, highlighted, onHover, onClick }: SeatShapeProps):
   const showReservation = seat.status === SeatStatus.RESERVED && seat.assigneeName;
 
   const labelText = showAssignee
-    ? seat.assigneeName ?? ''
+    ? (seat.assigneeName ?? '')
     : showReservation
-      ? seat.assigneeName ?? ''
+      ? (seat.assigneeName ?? '')
       : seat.code;
 
   return (
@@ -58,11 +58,7 @@ function SeatShapeImpl({ seat, highlighted, onHover, onClick }: SeatShapeProps):
         stroke={color}
         strokeWidth={highlighted ? 2.5 : 1.5}
         rx={2}
-        style={
-          highlighted
-            ? { animation: 'highlight-flash 1.2s infinite ease-in-out' }
-            : undefined
-        }
+        style={highlighted ? { animation: 'highlight-flash 1.2s infinite ease-in-out' } : undefined}
       />
       {seat.w >= MIN_SIZE_FOR_TEXT && seat.h >= MIN_SIZE_FOR_TEXT && (
         <text

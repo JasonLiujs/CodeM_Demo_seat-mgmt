@@ -5,15 +5,5 @@
 
 export { FloorPlanEditor } from './FloorPlanEditor';
 export { PropertyPanel } from './PropertyPanel';
-export {
-  InteractionMode,
-  normalizeRect,
-  computeResizeRect,
-} from './types';
-export type {
-  ResizeHandle,
-  DrawState,
-  MoveState,
-  ResizeState,
-  DragState,
-} from './types';
+export { InteractionMode, normalizeRect, computeResizeRect } from './types';
+export type { ResizeHandle, DrawState, MoveState, ResizeState, DragState } from './types';

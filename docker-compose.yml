@@ -11,7 +11,7 @@ services:
     volumes:
       - seat-mgmt-data:/app/backend/data
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:${APP_PORT:-8080}/healthz"]
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:${APP_PORT:-8080}/healthz']
       interval: 30s
       timeout: 5s
       retries: 3
@@ -21,7 +21,7 @@ services:
 
   # 开发环境：前后端热重载（不参与生产部署）
   dev-backend:
-    profiles: ["dev"]
+    profiles: ['dev']
     image: node:22-alpine
     working_dir: /app
     command: sh -c "npm install && npm run dev -w @seat-mgmt/backend"
@@ -32,12 +32,12 @@ services:
       - .:/app
       - /app/node_modules
     ports:
-      - "3001:3001"
+      - '3001:3001'
     networks:
       - caddy-net
 
   dev-frontend:
-    profiles: ["dev"]
+    profiles: ['dev']
     image: node:22-alpine
     working_dir: /app
     command: sh -c "npm install && npm run dev -w @seat-mgmt/frontend -- --host"
@@ -47,7 +47,7 @@ services:
       - .:/app
       - /app/node_modules
     ports:
-      - "5173:5173"
+      - '5173:5173'
     depends_on:
       - dev-backend
     networks:

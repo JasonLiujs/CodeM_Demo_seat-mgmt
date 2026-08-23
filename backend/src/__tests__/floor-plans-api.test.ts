@@ -58,9 +58,7 @@ describe('POST /api/floor-plans', () => {
   });
 
   it('缺少文件应返回 400', async () => {
-    const res = await request(app)
-      .post('/api/floor-plans')
-      .field('name', '测试');
+    const res = await request(app).post('/api/floor-plans').field('name', '测试');
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);

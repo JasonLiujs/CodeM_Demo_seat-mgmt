@@ -60,7 +60,9 @@ export function SeatBookingPage() {
   const [endTime, setEndTime] = useState('17:00');
   const [employeeId, setEmployeeId] = useState<number>(1);
   const [creating, setCreating] = useState(false);
-  const [createMsg, setCreateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [createMsg, setCreateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(
+    null,
+  );
 
   // 表单校验错误（内联提示）
   const [formErrors, setFormErrors] = useState<{
@@ -145,36 +147,36 @@ export function SeatBookingPage() {
   /** 创建预约 */
   const handleCreateBooking = async () => {
     // 内联校验
-      const errors: { seat?: string; startTime?: string; endTime?: string } = {};
-      if (!selectedSeatId) {
-    errors.seat = '请选择工位';
+    const errors: { seat?: string; startTime?: string; endTime?: string } = {};
+    if (!selectedSeatId) {
+      errors.seat = '请选择工位';
     }
-      if (!startTime) {
+    if (!startTime) {
       errors.startTime = '请选择开始时间';
     }
-if (!endTime) {
-    errors.endTime = '请选择结束时间';
+    if (!endTime) {
+      errors.endTime = '请选择结束时间';
     }
     if (startTime && endTime && endTime <= startTime) {
       errors.endTime = '结束时间必须晚于开始时间';
-      }
-setFormErrors(errors);
-      if (Object.keys(errors).length > 0) {
-        return;
-        }
+    }
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
 
-        setCreating(true);
-      setCreateMsg(null);
-      try {
+    setCreating(true);
+    setCreateMsg(null);
+    try {
       const startISO = new Date(`${bookingDate}T${startTime}:00`).toISOString();
       const endISO = new Date(`${bookingDate}T${endTime}:00`).toISOString();
 
-    await bookingApi.createBooking({
-      seatId: selectedSeatId as number,
-    employeeId,
-      startTime: startISO,
-    endTime: endISO,
-  });
+      await bookingApi.createBooking({
+        seatId: selectedSeatId as number,
+        employeeId,
+        startTime: startISO,
+        endTime: endISO,
+      });
       setCreateMsg({ type: 'success', text: '预约成功' });
       // 刷新工位列表（已预约的工位状态变为 reserved）
       await loadAvailableSeats();
@@ -231,11 +233,13 @@ setFormErrors(errors);
 
       {/* Tab 切换 */}
       <div className="flex gap-1 border-b border-gray-200">
-        {([
-          { key: 'create', label: '创建预约' },
-          { key: 'current', label: '我的预约' },
-          { key: 'history', label: '历史预约' },
-        ] as const).map((t) => (
+        {(
+          [
+            { key: 'create', label: '创建预约' },
+            { key: 'current', label: '我的预约' },
+            { key: 'history', label: '历史预约' },
+          ] as const
+        ).map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
@@ -257,39 +261,31 @@ setFormErrors(errors);
 
           {/* 选工位 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              选择空闲临时工位
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">选择空闲临时工位</label>
             <select
               value={selectedSeatId ?? ''}
               onChange={(e) => {
-              setSelectedSeatId(Number(e.target.value) || null);
-            setFormErrors((prev) => ({ ...prev, seat: undefined }));
+                setSelectedSeatId(Number(e.target.value) || null);
+                setFormErrors((prev) => ({ ...prev, seat: undefined }));
               }}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                 formErrors.seat ? 'border-red-400' : 'border-gray-300'
-                  }`}
-                >
+              }`}
+            >
               <option value="">— 请选择工位 —</option>
-            {seats.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.code}（{s.area} · {s.type}）
-            </option>
-          ))}
+              {seats.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.code}（{s.area} · {s.type}）
+                </option>
+              ))}
             </select>
-            {formErrors.seat && (
-              <p className="text-sm text-red-500 mt-1">{formErrors.seat}</p>
-            )}
-            {seats.length === 0 && (
-              <p className="text-sm text-gray-400 mt-1">暂无空闲临时工位</p>
-            )}
+            {formErrors.seat && <p className="text-sm text-red-500 mt-1">{formErrors.seat}</p>}
+            {seats.length === 0 && <p className="text-sm text-gray-400 mt-1">暂无空闲临时工位</p>}
           </div>
 
           {/* 员工 ID */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              员工 ID
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">员工 ID</label>
             <input
               type="number"
               min={1}
@@ -319,19 +315,19 @@ setFormErrors(errors);
                 type="time"
                 value={startTime}
                 onChange={(e) => {
-                setStartTime(e.target.value);
-              setFormErrors((prev) => ({ ...prev, startTime: undefined, endTime: undefined }));
-            }}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-              formErrors.startTime ? 'border-red-400' : 'border-gray-300'
-              }`}
-                />
-                {formErrors.startTime && (
+                  setStartTime(e.target.value);
+                  setFormErrors((prev) => ({ ...prev, startTime: undefined, endTime: undefined }));
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  formErrors.startTime ? 'border-red-400' : 'border-gray-300'
+                }`}
+              />
+              {formErrors.startTime && (
                 <p className="text-sm text-red-500 mt-1">{formErrors.startTime}</p>
-                )}
-              </div>
+              )}
+            </div>
             <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1">结束时间</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">结束时间</label>
               <input
                 type="time"
                 value={endTime}
@@ -388,37 +384,65 @@ setFormErrors(errors);
           {calendarView === 'list' && (
             <>
               {loadingList && (
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-<table className="w-full">
-              <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">ID</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">工位</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">员工</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">开始</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">结束</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">状态</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作</th>
-                          </tr>
-                        </thead>
-                        <TableSkeleton columns={7} />
-                      </table>
-                    </div>
-                  )}
-                  {listError && <p className="text-red-600">{listError}</p>}
-
-                  {!loadingList && !listError && (
                 <div className="bg-white rounded-lg shadow overflow-hidden">
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">ID</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">工位</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">员工</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">开始</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">结束</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">状态</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          ID
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          工位
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          员工
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          开始
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          结束
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          状态
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          操作
+                        </th>
+                      </tr>
+                    </thead>
+                    <TableSkeleton columns={7} />
+                  </table>
+                </div>
+              )}
+              {listError && <p className="text-red-600">{listError}</p>}
+
+              {!loadingList && !listError && (
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          ID
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          工位
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          员工
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          开始
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          结束
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          状态
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          操作
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -437,15 +461,22 @@ setFormErrors(errors);
                               <span className="text-gray-400 ml-1">({b.employeeEmpNo})</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{formatDateTime(b.startTime)}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{formatDateTime(b.endTime)}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {formatDateTime(b.startTime)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {formatDateTime(b.endTime)}
+                          </td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${statusColors[b.status] ?? ''}`}>
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${statusColors[b.status] ?? ''}`}
+                            >
                               {statusLabels[b.status] ?? b.status}
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            {(b.status === BookingStatus.PENDING || b.status === BookingStatus.CONFIRMED) && (
+                            {(b.status === BookingStatus.PENDING ||
+                              b.status === BookingStatus.CONFIRMED) && (
                               <button
                                 onClick={() => handleCancel(b.id)}
                                 className="text-sm text-red-600 hover:text-red-700 font-medium"
@@ -459,7 +490,9 @@ setFormErrors(errors);
                       {(tab === 'current' ? currentBookings : historyBookings).length === 0 && (
                         <tr>
                           <td colSpan={7}>
-                            <EmptyState message={`暂无${tab === 'current' ? '当前' : '历史'}预约`} />
+                            <EmptyState
+                              message={`暂无${tab === 'current' ? '当前' : '历史'}预约`}
+                            />
                           </td>
                         </tr>
                       )}
@@ -540,7 +573,8 @@ function CalendarView({
             const endOffset = getTimeOffset(b.endTime) - 8;
             const leftPct = (startOffset / 12) * 100;
             const widthPct = ((endOffset - startOffset) / 12) * 100;
-            const isActive = b.status === BookingStatus.PENDING || b.status === BookingStatus.CONFIRMED;
+            const isActive =
+              b.status === BookingStatus.PENDING || b.status === BookingStatus.CONFIRMED;
 
             return (
               <div key={b.id} className="space-y-1">

@@ -42,7 +42,8 @@ export class DepartmentService {
    */
   getDepartmentById(id: number): Department {
     const db = getDb();
-    const row = db.prepare('SELECT * FROM departments WHERE id = ?').get(id) as DepartmentRow | undefined;
+    const row = db.prepare('SELECT * FROM departments WHERE id = ?').get(id) as
+      DepartmentRow | undefined;
     if (!row) {
       throw new AppError(404, `部门 ID ${id} 不存在`, 'DEPARTMENT_NOT_FOUND');
     }
@@ -54,7 +55,8 @@ export class DepartmentService {
    */
   getDepartmentByName(name: string): Department | null {
     const db = getDb();
-    const row = db.prepare('SELECT * FROM departments WHERE name = ?').get(name) as DepartmentRow | undefined;
+    const row = db.prepare('SELECT * FROM departments WHERE name = ?').get(name) as
+      DepartmentRow | undefined;
     return row ? mapRow(row) : null;
   }
 
@@ -73,7 +75,9 @@ export class DepartmentService {
     }
 
     const result = db.prepare('INSERT INTO departments (name) VALUES (?)').run(data.name);
-    const row = db.prepare('SELECT * FROM departments WHERE id = ?').get(result.lastInsertRowid) as DepartmentRow;
+    const row = db
+      .prepare('SELECT * FROM departments WHERE id = ?')
+      .get(result.lastInsertRowid) as DepartmentRow;
     return mapRow(row);
   }
 
@@ -86,14 +90,17 @@ export class DepartmentService {
   updateDepartment(id: number, data: UpdateDepartmentDto): Department {
     const db = getDb();
 
-    const existing = db.prepare('SELECT * FROM departments WHERE id = ?').get(id) as DepartmentRow | undefined;
+    const existing = db.prepare('SELECT * FROM departments WHERE id = ?').get(id) as
+      DepartmentRow | undefined;
     if (!existing) {
       throw new AppError(404, `部门 ID ${id} 不存在`, 'DEPARTMENT_NOT_FOUND');
     }
 
     if (data.name !== undefined) {
       // 检查名称是否与其他部门重复
-      const dup = db.prepare('SELECT id FROM departments WHERE name = ? AND id != ?').get(data.name, id);
+      const dup = db
+        .prepare('SELECT id FROM departments WHERE name = ? AND id != ?')
+        .get(data.name, id);
       if (dup) {
         throw new AppError(409, `部门名称 ${data.name} 已存在`, 'DEPARTMENT_NAME_CONFLICT');
       }

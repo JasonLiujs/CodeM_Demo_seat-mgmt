@@ -31,7 +31,10 @@ afterEach(() => {
 });
 
 /** 生成未来 ISO 时间字符串 */
-function futureISO(hoursFromNow: number, durationHours: number = 2): { start: string; end: string } {
+function futureISO(
+  hoursFromNow: number,
+  durationHours: number = 2,
+): { start: string; end: string } {
   const now = new Date();
   const start = new Date(now.getTime() + hoursFromNow * 3600_000);
   const end = new Date(start.getTime() + durationHours * 3600_000);
@@ -124,9 +127,12 @@ describe('POST /api/bookings — 创建预约', () => {
     const now = new Date();
     const start = new Date(now.getTime() + 2 * 3600_000);
     const end = new Date(now.getTime() + 1 * 3600_000);
-    const res = await request(app)
-      .post('/api/bookings')
-      .send({ seatId: 1, employeeId: 1, startTime: start.toISOString(), endTime: end.toISOString() });
+    const res = await request(app).post('/api/bookings').send({
+      seatId: 1,
+      employeeId: 1,
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
+    });
     expect(res.status).toBe(400);
   });
 });
@@ -225,10 +231,12 @@ describe('expireBookings — 到期预约自动失效', () => {
     const db = (await import('../db/connection.js')).getDb();
     const pastStart = new Date(Date.now() - 3 * 3600_000).toISOString();
     const pastEnd = new Date(Date.now() - 1 * 3600_000).toISOString();
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO bookings (seat_id, employee_id, start_time, end_time, status)
       VALUES (?, ?, ?, ?, ?)
-    `).run(1, 1, pastStart, pastEnd, 'confirmed');
+    `,
+    ).run(1, 1, pastStart, pastEnd, 'confirmed');
 
     const expiredCount = bookingService.expireBookings();
     expect(expiredCount).toBe(1);
@@ -242,10 +250,12 @@ describe('expireBookings — 到期预约自动失效', () => {
     const db = (await import('../db/connection.js')).getDb();
     const pastStart = new Date(Date.now() - 3 * 3600_000).toISOString();
     const pastEnd = new Date(Date.now() - 1 * 3600_000).toISOString();
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO bookings (seat_id, employee_id, start_time, end_time, status)
       VALUES (?, ?, ?, ?, ?)
-    `).run(1, 1, pastStart, pastEnd, 'confirmed');
+    `,
+    ).run(1, 1, pastStart, pastEnd, 'confirmed');
     // 手动将工位设为 reserved
     db.prepare('UPDATE seats SET status = ? WHERE id = ?').run('reserved', 1);
 

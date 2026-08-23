@@ -10,10 +10,5 @@ type SkeletonProps = {
 
 /** 通用骨架屏 */
 export function Skeleton({ className = '' }: SkeletonProps) {
-  return (
-    <div
-      className={`animate-pulse bg-gray-200 rounded ${className}`}
-      aria-hidden="true"
-    />
-  );
+  return <div className={`animate-pulse bg-gray-200 rounded ${className}`} aria-hidden="true" />;
 }

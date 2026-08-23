@@ -126,8 +126,8 @@ export function runMigrations(): void {
     );
     `);
 
-    // 创建索引以提升查询性能
-    db.exec(`
+  // 创建索引以提升查询性能
+  db.exec(`
   CREATE INDEX IF NOT EXISTS idx_seats_area        ON seats(area);
     CREATE INDEX IF NOT EXISTS idx_seats_status       ON seats(status);
     CREATE INDEX IF NOT EXISTS idx_seats_floor_plan   ON seats(floor_plan_id);

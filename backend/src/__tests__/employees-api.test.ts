@@ -75,8 +75,12 @@ describe('GET /api/employees', () => {
     const dept1 = await request(app).post('/api/departments').send({ name: '研发部' });
     const dept2 = await request(app).post('/api/departments').send({ name: '产品部' });
 
-    await request(app).post('/api/employees').send({ empNo: 'E1', name: 'A', departmentId: dept1.body.data.id });
-    await request(app).post('/api/employees').send({ empNo: 'E2', name: 'B', departmentId: dept2.body.data.id });
+    await request(app)
+      .post('/api/employees')
+      .send({ empNo: 'E1', name: 'A', departmentId: dept1.body.data.id });
+    await request(app)
+      .post('/api/employees')
+      .send({ empNo: 'E2', name: 'B', departmentId: dept2.body.data.id });
 
     const res = await request(app).get(`/api/employees?departmentId=${dept1.body.data.id}`);
     expect(res.status).toBe(200);
@@ -86,7 +90,9 @@ describe('GET /api/employees', () => {
 
   it('应支持分页', async () => {
     for (let i = 1; i <= 25; i++) {
-      await request(app).post('/api/employees').send({ empNo: `E${i}`, name: `员工${i}` });
+      await request(app)
+        .post('/api/employees')
+        .send({ empNo: `E${i}`, name: `员工${i}` });
     }
 
     const res = await request(app).get('/api/employees?page=1&pageSize=10');
@@ -99,7 +105,9 @@ describe('GET /api/employees', () => {
 
 describe('GET /api/employees/:id', () => {
   it('应返回指定员工', async () => {
-    const created = await request(app).post('/api/employees').send({ empNo: 'EMP001', name: '张伟' });
+    const created = await request(app)
+      .post('/api/employees')
+      .send({ empNo: 'EMP001', name: '张伟' });
     const id = created.body.data.id;
 
     const res = await request(app).get(`/api/employees/${id}`);

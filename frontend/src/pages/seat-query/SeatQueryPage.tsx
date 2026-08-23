@@ -13,11 +13,7 @@ import {
 import { seatQueryApi } from '../../api/seat-query-api';
 import { floorPlanApi } from '../../api/seat-api';
 import { apiGet } from '../../api/client';
-import type {
-  EmployeeSeatResult,
-  FloorPlanResponse,
-  Department,
-} from '@seat-mgmt/shared';
+import type { EmployeeSeatResult, FloorPlanResponse, Department } from '@seat-mgmt/shared';
 import { EmptyState } from '../../components/feedback';
 
 /** 工位查询页面 */
@@ -117,10 +113,7 @@ export function SeatQueryPage(): React.JSX.Element {
   }, [empNoInput]);
 
   /** 部门选项 */
-  const departmentOptions = useMemo(
-    () => departments.map((d) => d.name).sort(),
-    [departments],
-  );
+  const departmentOptions = useMemo(() => departments.map((d) => d.name).sort(), [departments]);
 
   /** 区域选项（从平面图维度提供占位，FloorPlanViewer 内部从 seats 聚合） */
   const areaOptions = useMemo(() => [], []);
@@ -210,10 +203,7 @@ export function SeatQueryPage(): React.JSX.Element {
       {/* 无结果提示 */}
       {noResult && (
         <div className="bg-white rounded-lg shadow">
-          <EmptyState
-        message="未找到匹配的工位，请尝试调整搜索或筛选条件"
-      icon="🔍"
-          />
+          <EmptyState message="未找到匹配的工位，请尝试调整搜索或筛选条件" icon="🔍" />
         </div>
       )}
 
@@ -221,20 +211,20 @@ export function SeatQueryPage(): React.JSX.Element {
       {currentFloorPlan ? (
         <div className="bg-white rounded-lg shadow p-4">
           {/* md 下通过 overflow-auto + min-width 适配宽度 */}
-            <div className="overflow-auto">
+          <div className="overflow-auto">
             <div className="min-w-[600px]">
-            <FloorPlanViewer
-            floorPlanId={currentFloorPlan.id}
-          searchQuery={searchQuery}
-          filters={filters}
-        highlightSeatId={highlightSeatId}
-      onFilteredCountChange={setFilteredCount}
-        />
-          </div>
+              <FloorPlanViewer
+                floorPlanId={currentFloorPlan.id}
+                searchQuery={searchQuery}
+                filters={filters}
+                highlightSeatId={highlightSeatId}
+                onFilteredCountChange={setFilteredCount}
+              />
             </div>
           </div>
-        ) : (
-      <div className="bg-white rounded-lg shadow p-4">
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-center h-96 text-gray-400 text-sm border border-dashed border-gray-200 rounded">
             请选择平面图
           </div>

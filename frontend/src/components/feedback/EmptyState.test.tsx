@@ -24,12 +24,7 @@ describe('EmptyState', () => {
   });
 
   it('应渲染操作按钮', () => {
-    render(
-      <EmptyState
-        message="空"
-        action={<button data-testid="action-btn">添加</button>}
-      />,
-    );
+    render(<EmptyState message="空" action={<button data-testid="action-btn">添加</button>} />);
     expect(screen.getByTestId('action-btn')).toBeTruthy();
   });
 });

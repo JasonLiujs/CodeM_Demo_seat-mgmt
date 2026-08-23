@@ -362,7 +362,10 @@ export interface IAssignService {
   assign(seatId: number, empId: number, assignedBy: string): Promise<Assignment>;
   unassign(id: number): Promise<void>;
   transfer(empId: number, newSeatId: number, operator: string): Promise<Assignment>;
-  batchAssign(pairs: Array<{ seatId: number; employeeId: number }>, assignedBy: string): Promise<Assignment[]>;
+  batchAssign(
+    pairs: Array<{ seatId: number; employeeId: number }>,
+    assignedBy: string,
+  ): Promise<Assignment[]>;
   relocate(deptId: number, targetArea: string): Promise<void>;
 }
 

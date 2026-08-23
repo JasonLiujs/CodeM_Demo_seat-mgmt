@@ -89,9 +89,7 @@ describe('FloorPlanEditor', () => {
   });
 
   it('selectedSeatId 非空时渲染选中状态与调整把手', () => {
-    const { container } = render(
-      <FloorPlanEditor {...mockProps} selectedSeatId={1} />,
-    );
+    const { container } = render(<FloorPlanEditor {...mockProps} selectedSeatId={1} />);
     // 选中状态应有调整把手 rect
     const handles = container.querySelectorAll('rect[data-handle]');
     expect(handles.length).toBeGreaterThan(0);

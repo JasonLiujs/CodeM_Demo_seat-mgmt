@@ -1,0 +1,50 @@
+# 生产环境部署编排：后端 + 前端（nginx 托管）
+# 注意：deploy.yml 继续使用 docker-compose.yml；本文件作为规范交付物供独立生产编排参考。
+services:
+  backend:
+    build:
+      context: .
+      target: production
+    image: ${IMAGE_NAME:-codem-seat-mgmt}:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_NAME:-codem-seat-mgmt-backend}
+    restart: unless-stopped
+    environment:
+      PORT: ${APP_PORT:-8080}
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_PATH: ${DB_PATH:-/app/backend/data/seat-mgmt.db}
+    volumes:
+      - seat-mgmt-data:/app/backend/data
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:${APP_PORT:-8080}/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - caddy-net
+
+  frontend:
+    image: nginx:alpine
+    container_name: ${CONTAINER_NAME:-codem-seat-mgmt-frontend}
+    restart: unless-stopped
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - frontend-dist:/usr/share/nginx/html
+    ports:
+      - '80'
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - caddy-net
+
+volumes:
+  seat-mgmt-data:
+  # 前端静态产物由构建阶段复制；生产编排中通过构建脚本填充
+  frontend-dist:
+    driver: local
+
+networks:
+  caddy-net:
+    external: true
+    name: caddy-net

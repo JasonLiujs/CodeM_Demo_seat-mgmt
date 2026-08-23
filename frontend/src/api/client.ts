@@ -13,10 +13,7 @@ const API_BASE = '/api';
  * 发送 HTTP 请求并解析统一响应格式
  * 业务错误（body.success === false）和网络错误均会触发错误 toast 后 rethrow
  */
-export async function apiRequest<T>(
-  path: string,
-  options?: RequestInit,
-): Promise<T> {
+export async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
   // 标记是否已在业务分支触发过 toast，避免 catch 中重复提示
   let businessError = false;
 

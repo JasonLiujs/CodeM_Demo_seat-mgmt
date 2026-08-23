@@ -6,26 +6,35 @@
 import { z } from 'zod';
 
 /** 预约状态枚举值 */
-export const bookingStatusValues = ['pending', 'confirmed', 'cancelled', 'completed', 'expired'] as const;
+export const bookingStatusValues = [
+  'pending',
+  'confirmed',
+  'cancelled',
+  'completed',
+  'expired',
+] as const;
 
 /** 创建预约 schema */
-export const createBookingSchema = z.object({
-  seatId: z.number().int().positive('工位 ID 必须为正整数'),
-  employeeId: z.number().int().positive('员工 ID 必须为正整数'),
-  startTime: z.string().min(1, '开始时间不能为空'),
-  endTime: z.string().min(1, '结束时间不能为空'),
-}).refine(
-  (data) => new Date(data.endTime) > new Date(data.startTime),
-  { message: '结束时间必须晚于开始时间', path: ['endTime'] },
-).refine(
-  (data) => {
-    const start = new Date(data.startTime);
-    const now = new Date();
-    // 允许 1 分钟内的时间偏差（避免时钟漂移）
-    return start.getTime() >= now.getTime() - 60_000;
-  },
-  { message: '开始时间不能早于当前时间', path: ['startTime'] },
-);
+export const createBookingSchema = z
+  .object({
+    seatId: z.number().int().positive('工位 ID 必须为正整数'),
+    employeeId: z.number().int().positive('员工 ID 必须为正整数'),
+    startTime: z.string().min(1, '开始时间不能为空'),
+    endTime: z.string().min(1, '结束时间不能为空'),
+  })
+  .refine((data) => new Date(data.endTime) > new Date(data.startTime), {
+    message: '结束时间必须晚于开始时间',
+    path: ['endTime'],
+  })
+  .refine(
+    (data) => {
+      const start = new Date(data.startTime);
+      const now = new Date();
+      // 允许 1 分钟内的时间偏差（避免时钟漂移）
+      return start.getTime() >= now.getTime() - 60_000;
+    },
+    { message: '开始时间不能早于当前时间', path: ['startTime'] },
+  );
 
 /** 预约筛选 schema */
 export const bookingFilterSchema = z.object({

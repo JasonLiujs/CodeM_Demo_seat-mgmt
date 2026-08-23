@@ -60,7 +60,9 @@ export class SeatService {
    * @param filter 筛选条件与分页参数
    * @returns 分页响应
    */
-  listSeats(filter: SeatFilterDto & { page?: number; pageSize?: number }): PaginatedResponse<SeatWithAssignee> {
+  listSeats(
+    filter: SeatFilterDto & { page?: number; pageSize?: number },
+  ): PaginatedResponse<SeatWithAssignee> {
     const db = getDb();
     const page = filter.page ?? 1;
     const pageSize = filter.pageSize ?? 20;
@@ -86,9 +88,7 @@ export class SeatService {
       params.push(filter.floorPlanId);
     }
 
-    const whereClause = conditions.length > 0
-      ? `WHERE ${conditions.join(' AND ')}`
-      : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // 查询总数
     const countSql = `SELECT COUNT(*) as total FROM seats s ${whereClause}`;
@@ -106,7 +106,7 @@ LEFT JOIN employees e ON a.employee_id = e.id
       ORDER BY s.id ASC
       LIMIT ? OFFSET ?
       `;
-      const rows = db.prepare(dataSql).all(...params, pageSize, offset) as SeatJoinRow[];
+    const rows = db.prepare(dataSql).all(...params, pageSize, offset) as SeatJoinRow[];
 
     const totalPages = Math.ceil(total / pageSize);
 
@@ -133,29 +133,37 @@ LEFT JOIN employees e ON a.employee_id = e.id
       throw new AppError(409, `工位编码 ${data.code} 已存在`, 'SEAT_CODE_CONFLICT');
     }
 
-    const result = db.prepare(`
+    const result = db
+      .prepare(
+        `
       INSERT INTO seats (code, area, type, x, y, w, h, floor_plan_id, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      data.code,
-      data.area,
-      data.type,
-      data.x,
-      data.y,
-      data.w,
-      data.h,
-      data.floorPlanId ?? null,
-      data.status ?? 'available',
-    );
+    `,
+      )
+      .run(
+        data.code,
+        data.area,
+        data.type,
+        data.x,
+        data.y,
+        data.w,
+        data.h,
+        data.floorPlanId ?? null,
+        data.status ?? 'available',
+      );
 
     // 查回新插入的行（含分配人信息，新工位无分配人）
-    const row = db.prepare(`
+    const row = db
+      .prepare(
+        `
     SELECT s.*, e.name AS assignee_name, e.emp_no AS assignee_emp_no
   FROM seats s
       LEFT JOIN assignments a ON s.id = a.seat_id AND a.status = 'active'
       LEFT JOIN employees e ON a.employee_id = e.id
       WHERE s.id = ?
-    `).get(result.lastInsertRowid) as SeatJoinRow;
+    `,
+      )
+      .get(result.lastInsertRowid) as SeatJoinRow;
     return mapJoinRow(row);
   }
 
@@ -217,27 +225,35 @@ LEFT JOIN employees e ON a.employee_id = e.id
 
     if (fields.length === 0) {
       // 没有字段需要更新，返回当前值（含分配人信息）
-      const row = db.prepare(`
+      const row = db
+        .prepare(
+          `
     SELECT s.*, e.name AS assignee_name, e.emp_no AS assignee_emp_no
 FROM seats s
     LEFT JOIN assignments a ON s.id = a.seat_id AND a.status = 'active'
     LEFT JOIN employees e ON a.employee_id = e.id
 WHERE s.id = ?
-    `).get(id) as SeatJoinRow;
-    return mapJoinRow(row);
+    `,
+        )
+        .get(id) as SeatJoinRow;
+      return mapJoinRow(row);
     }
 
     params.push(id);
     db.prepare(`UPDATE seats SET ${fields.join(', ')} WHERE id = ?`).run(...params);
 
     // 查回更新后的行（含分配人信息）
-    const row = db.prepare(`
+    const row = db
+      .prepare(
+        `
       SELECT s.*, e.name AS assignee_name, e.emp_no AS assignee_emp_no
       FROM seats s
       LEFT JOIN assignments a ON s.id = a.seat_id AND a.status = 'active'
       LEFT JOIN employees e ON a.employee_id = e.id
       WHERE s.id = ?
-    `).get(id) as SeatJoinRow;
+    `,
+      )
+      .get(id) as SeatJoinRow;
     return mapJoinRow(row);
   }
 

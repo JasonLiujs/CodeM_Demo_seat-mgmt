@@ -6,10 +6,7 @@
 import type { EmployeeSeatResult } from '@seat-mgmt/shared';
 
 /** 通用请求方法 */
-async function request<T>(
-  url: string,
-  options?: RequestInit,
-): Promise<T> {
+async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,
@@ -26,8 +23,6 @@ async function request<T>(
 export const seatQueryApi = {
   /** 按工号查询员工工位 */
   getEmployeeSeat(empNo: string): Promise<EmployeeSeatResult> {
-    return request<EmployeeSeatResult>(
-      `/api/employees/${encodeURIComponent(empNo)}/seat`,
-    );
+    return request<EmployeeSeatResult>(`/api/employees/${encodeURIComponent(empNo)}/seat`);
   },
 };

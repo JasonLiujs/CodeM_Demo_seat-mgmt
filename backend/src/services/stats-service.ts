@@ -50,11 +50,15 @@ export class StatsService {
     const db = getDb();
 
     // 按 status 分组统计工位
-    const statusRows = db.prepare(`
+    const statusRows = db
+      .prepare(
+        `
       SELECT status, COUNT(*) as count
       FROM seats
       GROUP BY status
-    `).all() as Array<{ status: string; count: number }>;
+    `,
+      )
+      .all() as Array<{ status: string; count: number }>;
 
     let available = 0;
     let occupied = 0;
@@ -79,19 +83,27 @@ export class StatsService {
     const totalSeats = available + occupied + reserved + maintenance;
 
     // 员工总数与已分配数（有 seat_id 即视为已分配）
-    const empRow = db.prepare(`
+    const empRow = db
+      .prepare(
+        `
       SELECT
         COUNT(*) as total_employees,
         COUNT(seat_id) as assigned_employees
       FROM employees
-    `).get() as { total_employees: number; assigned_employees: number };
+    `,
+      )
+      .get() as { total_employees: number; assigned_employees: number };
 
     // 活跃预订数（status 为 pending 或 confirmed）
-    const bookingRow = db.prepare(`
+    const bookingRow = db
+      .prepare(
+        `
       SELECT COUNT(*) as active_bookings
       FROM bookings
       WHERE status IN ('pending', 'confirmed')
-    `).get() as { active_bookings: number };
+    `,
+      )
+      .get() as { active_bookings: number };
 
     return {
       totalSeats,
@@ -113,7 +125,9 @@ export class StatsService {
   getByArea(): StatsByArea[] {
     const db = getDb();
 
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(
+        `
       SELECT
         area,
         COUNT(*) as total,
@@ -124,7 +138,9 @@ export class StatsService {
       FROM seats
       GROUP BY area
       ORDER BY area ASC
-    `).all() as AreaRow[];
+    `,
+      )
+      .all() as AreaRow[];
 
     return rows.map((r) => ({
       area: r.area,
@@ -144,22 +160,24 @@ export class StatsService {
     const db = getDb();
 
     // 查询最近 N 条历史快照（按日期升序返回）
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(
+        `
       SELECT date, occupied_seats, reserved_seats, total_seats
       FROM stats_daily
       ORDER BY date DESC
       LIMIT ?
-    `).all(days) as StatsDailyRow[];
+    `,
+      )
+      .all(days) as StatsDailyRow[];
 
     if (rows.length > 0) {
       // 反转为升序，便于折线图按时间正序展示
-      return rows
-        .reverse()
-        .map((r) => ({
-          date: r.date,
-          assigned: r.occupied_seats,
-          booked: r.reserved_seats,
-        }));
+      return rows.reverse().map((r) => ({
+        date: r.date,
+        assigned: r.occupied_seats,
+        booked: r.reserved_seats,
+      }));
     }
 
     // 无历史数据：返回当日实时快照兜底
@@ -182,7 +200,9 @@ export class StatsService {
   getDepartments(): StatsByDepartment[] {
     const db = getDb();
 
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(
+        `
       SELECT
         d.id as department_id,
         COALESCE(d.name, '未分配') as department_name,
@@ -192,7 +212,9 @@ export class StatsService {
       LEFT JOIN employees e ON e.department_id = d.id
       GROUP BY d.id, d.name
       ORDER BY total_employees DESC
-    `).all() as DepartmentRow[];
+    `,
+      )
+      .all() as DepartmentRow[];
 
     return rows.map((r) => ({
       departmentId: r.department_id,
@@ -214,15 +236,15 @@ export class StatsService {
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
     const utilizationRate =
-      overview.totalSeats > 0
-        ? (overview.occupiedSeats / overview.totalSeats) * 100
-        : 0;
+      overview.totalSeats > 0 ? (overview.occupiedSeats / overview.totalSeats) * 100 : 0;
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT OR REPLACE INTO stats_daily
         (date, total_seats, occupied_seats, available_seats, reserved_seats, utilization_rate)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       dateStr,
       overview.totalSeats,
       overview.occupiedSeats,

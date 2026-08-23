@@ -17,7 +17,10 @@ type SearchBarProps = {
 /**
  * SearchBar — 受控输入框，本地维护即时值，防抖后向上通知
  */
-export function SearchBar({ onSearchChange, placeholder = '按姓名搜索工位...' }: SearchBarProps): React.JSX.Element {
+export function SearchBar({
+  onSearchChange,
+  placeholder = '按姓名搜索工位...',
+}: SearchBarProps): React.JSX.Element {
   const [value, setValue] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

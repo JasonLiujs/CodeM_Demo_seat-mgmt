@@ -16,15 +16,7 @@ export enum InteractionMode {
 }
 
 /** 调整大小的把手位置（8 个方向角点+边中点） */
-export type ResizeHandle =
-  | 'nw'
-  | 'n'
-  | 'ne'
-  | 'e'
-  | 'se'
-  | 's'
-  | 'sw'
-  | 'w';
+export type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
 /** 拖拽绘制状态 */
 export interface DrawState {

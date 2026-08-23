@@ -74,8 +74,7 @@ export const useToastStore = create<ToastStore>((set, get) => ({
 // 为了便于 api 层等非 React 环境调用，导出 getState
 export const toastStore = {
   getState: useToastStore.getState,
-  addToast: (type: ToastType, message: string) =>
-    useToastStore.getState().addToast(type, message),
+  addToast: (type: ToastType, message: string) => useToastStore.getState().addToast(type, message),
   dismissToast: (id: string) => useToastStore.getState().dismissToast(id),
   clearToasts: () => useToastStore.getState().clearToasts(),
 };

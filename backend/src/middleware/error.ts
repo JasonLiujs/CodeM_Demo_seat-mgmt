@@ -28,12 +28,7 @@ export function notFoundHandler(_req: Request, res: Response): void {
 }
 
 /** 全局错误处理中间件 */
-export function errorHandler(
-  err: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction,
-): void {
+export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
       success: false,

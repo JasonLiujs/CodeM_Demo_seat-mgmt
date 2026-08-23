@@ -60,26 +60,26 @@ export function DashboardPage() {
     return (
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-800">统计看板</h2>
-      {/* 顶部数字卡片骨架 */}
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-  {Array.from({ length: 4 }, (_, i) => (
-<div key={i} className="bg-white rounded-lg shadow p-6">
-  <Skeleton className="h-4 w-16" />
-    <Skeleton className="h-8 w-24 mt-2" />
-      </div>
-        ))}
+        {/* 顶部数字卡片骨架 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="bg-white rounded-lg shadow p-6">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-8 w-24 mt-2" />
+            </div>
+          ))}
         </div>
-          {/* 图表区域骨架 */}
+        {/* 图表区域骨架 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {Array.from({ length: 2 }, (_, i) => (
-          <div key={i} className="bg-white rounded-lg shadow p-6">
-          <Skeleton className="h-5 w-32 mb-4" />
-        <Skeleton className="h-48 w-full" />
-          </div>
-        ))}
-      </div>
-    <div className="bg-white rounded-lg shadow p-6">
-  <Skeleton className="h-5 w-40 mb-4" />
+          {Array.from({ length: 2 }, (_, i) => (
+            <div key={i} className="bg-white rounded-lg shadow p-6">
+              <Skeleton className="h-5 w-32 mb-4" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          ))}
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <Skeleton className="h-5 w-40 mb-4" />
           <Skeleton className="h-48 w-full" />
         </div>
       </div>
@@ -150,19 +150,27 @@ export function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
           <p className="text-xs text-gray-500">预约中</p>
-          <p className="text-xl font-semibold text-amber-600 mt-1">{overview?.reservedSeats ?? 0}</p>
+          <p className="text-xl font-semibold text-amber-600 mt-1">
+            {overview?.reservedSeats ?? 0}
+          </p>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <p className="text-xs text-gray-500">维护中</p>
-          <p className="text-xl font-semibold text-red-500 mt-1">{overview?.maintenanceSeats ?? 0}</p>
+          <p className="text-xl font-semibold text-red-500 mt-1">
+            {overview?.maintenanceSeats ?? 0}
+          </p>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <p className="text-xs text-gray-500">员工总数</p>
-          <p className="text-xl font-semibold text-gray-700 mt-1">{overview?.totalEmployees ?? 0}</p>
+          <p className="text-xl font-semibold text-gray-700 mt-1">
+            {overview?.totalEmployees ?? 0}
+          </p>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <p className="text-xs text-gray-500">活跃预订</p>
-          <p className="text-xl font-semibold text-indigo-600 mt-1">{overview?.activeBookings ?? 0}</p>
+          <p className="text-xl font-semibold text-indigo-600 mt-1">
+            {overview?.activeBookings ?? 0}
+          </p>
         </div>
       </div>
 

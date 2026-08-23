@@ -139,13 +139,9 @@ export function SeatMapPage() {
   const handleSeatUpdate = useCallback(
     async (id: number, data: UpdateSeatDto) => {
       // 先乐观更新本地状态
-      setSeats((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, ...data } : s)),
-      );
+      setSeats((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
       // 同步选中工位
-      setSelectedSeat((prev) =>
-        prev && prev.id === id ? { ...prev, ...data } : prev,
-      );
+      setSelectedSeat((prev) => (prev && prev.id === id ? { ...prev, ...data } : prev));
       try {
         const updated = await seatApi.updateSeat(id, data);
         setSeats((prev) => prev.map((s) => (s.id === id ? updated : s)));
@@ -344,62 +340,62 @@ export function SeatMapPage() {
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             {/* md 下通过 overflow-auto + min-width 适配宽度，不用 CSS scale 以免影响 Raycaster 命中坐标 */}
-              <div className="overflow-auto">
+            <div className="overflow-auto">
               <div className="min-w-[600px]">
-              <FloorPlanViewer
-              floorPlanId={currentFloorPlan.id}
-            searchQuery={searchQuery}
-            filters={filters}
-              onSeatClick={handleViewerSeatClick}
+                <FloorPlanViewer
+                  floorPlanId={currentFloorPlan.id}
+                  searchQuery={searchQuery}
+                  filters={filters}
+                  onSeatClick={handleViewerSeatClick}
                 />
-                </div>
-                </div>
-              {selectedSeat && (
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
-          已选中工位：<strong>{selectedSeat.code}</strong>
-        {selectedSeat.assigneeName && ` · 分配人：${selectedSeat.assigneeName}`}
-      {` · 区域：${selectedSeat.area}`}
-</div>
-      )}
-      </div>
-        </div>
-          )}
-
-              {/* 编辑模式：FloorPlanEditor + PropertyPanel */}
-                {mode === 'edit' && (
-              <div className="flex flex-col md:flex-row gap-4">
-              {currentFloorPlan ? (
-                <div className="flex-1 bg-white rounded-lg shadow p-4 min-w-0">
-                {loading && (
-                <div className="space-y-3">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-96 w-full" />
-                </div>
-                )}
-                <FloorPlanEditor
-                floorPlanId={currentFloorPlan.id}
-                seats={seats}
-              imageUrl={currentFloorPlan.imageUrl}
-            width={currentFloorPlan.width}
-          height={currentFloorPlan.height}
-            selectedSeatId={selectedSeat?.id ?? null}
-              onSelectSeat={(seat) => setSelectedSeat(seat)}
-                onSeatCreate={handleSeatCreate}
-              onSeatUpdate={handleSeatUpdate}
-            onSeatDelete={handleSeatDelete}
-          />
-</div>
-          ) : (
-            <div className="flex-1 bg-white rounded-lg shadow p-4">
-            <div className="flex items-center justify-center h-96 text-gray-400 text-sm border border-dashed border-gray-200 rounded">
-              请选择或上传底图
-                </div>
+              </div>
+            </div>
+            {selectedSeat && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                已选中工位：<strong>{selectedSeat.code}</strong>
+                {selectedSeat.assigneeName && ` · 分配人：${selectedSeat.assigneeName}`}
+                {` · 区域：${selectedSeat.area}`}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 编辑模式：FloorPlanEditor + PropertyPanel */}
+      {mode === 'edit' && (
+        <div className="flex flex-col md:flex-row gap-4">
+          {currentFloorPlan ? (
+            <div className="flex-1 bg-white rounded-lg shadow p-4 min-w-0">
+              {loading && (
+                <div className="space-y-3">
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-96 w-full" />
+                </div>
+              )}
+              <FloorPlanEditor
+                floorPlanId={currentFloorPlan.id}
+                seats={seats}
+                imageUrl={currentFloorPlan.imageUrl}
+                width={currentFloorPlan.width}
+                height={currentFloorPlan.height}
+                selectedSeatId={selectedSeat?.id ?? null}
+                onSelectSeat={(seat) => setSelectedSeat(seat)}
+                onSeatCreate={handleSeatCreate}
+                onSeatUpdate={handleSeatUpdate}
+                onSeatDelete={handleSeatDelete}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-center h-96 text-gray-400 text-sm border border-dashed border-gray-200 rounded">
+                请选择或上传底图
+              </div>
+            </div>
+          )}
 
           <PropertyPanel
-        seat={selectedSeat}
-      onChange={(data) => {
+            seat={selectedSeat}
+            onChange={(data) => {
               if (selectedSeat) {
                 void handleSeatUpdate(selectedSeat.id, data);
               }

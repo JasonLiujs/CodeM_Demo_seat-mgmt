@@ -123,10 +123,7 @@ assignmentsRouter.post('/batch', (req, res, next) => {
       throw new AppError(400, `参数校验失败: ${parsed.error.message}`, 'VALIDATION_ERROR');
     }
 
-    const assignments = assignService.batchAssign(
-      parsed.data.pairs,
-      parsed.data.assignedBy,
-    );
+    const assignments = assignService.batchAssign(parsed.data.pairs, parsed.data.assignedBy);
     res.status(201).json({ success: true, data: assignments });
   } catch (err) {
     next(err);
@@ -144,11 +141,7 @@ assignmentsRouter.post('/relocate', (req, res, next) => {
       throw new AppError(400, `参数校验失败: ${parsed.error.message}`, 'VALIDATION_ERROR');
     }
 
-    assignService.relocate(
-      parsed.data.departmentId,
-      parsed.data.targetArea,
-      parsed.data.operator,
-    );
+    assignService.relocate(parsed.data.departmentId, parsed.data.targetArea, parsed.data.operator);
     res.json({ success: true, data: { message: '部门搬迁完成' } });
   } catch (err) {
     next(err);

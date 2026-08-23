@@ -19,12 +19,7 @@ type Props = {
 };
 
 /** 折线图 */
-export function LineChart({
-  data,
-  height = 260,
-  color = '#10b981',
-  valueLabel = '',
-}: Props) {
+export function LineChart({ data, height = 260, color = '#10b981', valueLabel = '' }: Props) {
   const width = 560;
   const padding = { top: 20, right: 20, bottom: 40, left: 48 };
   const chartW = width - padding.left - padding.right;
@@ -46,9 +41,7 @@ export function LineChart({
   const yTicks = Array.from({ length: 5 }, (_, i) => Math.round((yMax / 4) * i));
 
   // 折线路径
-  const pathD = points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
-    .join(' ');
+  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
 
   // 填充区域路径
   const areaD =

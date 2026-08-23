@@ -19,12 +19,7 @@ type Props = {
 };
 
 /** 柱状图 */
-export function BarChart({
-  data,
-  height = 260,
-  color = '#3b82f6',
-  valueLabel = '',
-}: Props) {
+export function BarChart({ data, height = 260, color = '#3b82f6', valueLabel = '' }: Props) {
   const width = 560;
   const padding = { top: 20, right: 20, bottom: 40, left: 48 };
   const chartW = width - padding.left - padding.right;
@@ -34,7 +29,7 @@ export function BarChart({
   // 取整到合适的刻度
   const yMax = Math.ceil(maxValue * 1.1);
   const barCount = data.length;
-  const barWidth = barCount > 0 ? chartW / barCount * 0.6 : 0;
+  const barWidth = barCount > 0 ? (chartW / barCount) * 0.6 : 0;
   const barGap = barCount > 0 ? chartW / barCount : 0;
 
   // y 轴刻度（4 等分）
@@ -69,14 +64,7 @@ export function BarChart({
         const y = padding.top + chartH - barH;
         return (
           <g key={d.label}>
-            <rect
-              x={x}
-              y={y}
-              width={barWidth}
-              height={barH}
-              fill={color}
-              rx={4}
-            />
+            <rect x={x} y={y} width={barWidth} height={barH} fill={color} rx={4} />
             <text
               x={x + barWidth / 2}
               y={y - 6}

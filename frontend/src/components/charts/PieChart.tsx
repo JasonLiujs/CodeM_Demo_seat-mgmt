@@ -45,7 +45,10 @@ export function PieChart({ data, colors = DEFAULT_COLORS }: Props) {
 
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center text-sm text-gray-400" style={{ height: size }}>
+      <div
+        className="flex items-center justify-center text-sm text-gray-400"
+        style={{ height: size }}
+      >
         暂无数据
       </div>
     );

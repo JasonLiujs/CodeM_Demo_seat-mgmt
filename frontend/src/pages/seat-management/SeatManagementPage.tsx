@@ -99,10 +99,10 @@ export function SeatManagementPage() {
     try {
       await seatApi.deleteSeat(id);
       showSuccess('删除成功');
-    void loadSeats();
-      } catch (err) {
-    setError(err instanceof Error ? err.message : '删除失败');
-  }
+      void loadSeats();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '删除失败');
+    }
   };
 
   return (
@@ -177,25 +177,39 @@ export function SeatManagementPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">编码</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">区域</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">类型</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">分配人</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                ID
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                编码
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                区域
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                类型
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                状态
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                分配人
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                操作
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <TableSkeleton columns={7} />
-                ) : seats.length === 0 ? (
-                  <tr>
+            ) : seats.length === 0 ? (
+              <tr>
                 <td colSpan={7}>
-              <EmptyState message="暂无工位数据" />
-            </td>
+                  <EmptyState message="暂无工位数据" />
+                </td>
               </tr>
-                ) : (
+            ) : (
               seats.map((seat) => (
                 <tr key={seat.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-600">{seat.id}</td>
@@ -203,21 +217,23 @@ export function SeatManagementPage() {
                   <td className="px-4 py-3 text-sm text-gray-600">{seat.area}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{typeLabels[seat.type]}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs ${statusColors[seat.status]}`}>
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded text-xs ${statusColors[seat.status]}`}
+                    >
                       {statusLabels[seat.status]}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
                     {seat.assigneeName ? `${seat.assigneeName}（${seat.assigneeEmpNo}）` : '-'}
-                      </td>
-                      <td className="px-4 py-3">
+                  </td>
+                  <td className="px-4 py-3">
                     <button
                       onClick={() => handleDelete(seat.id)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                删除
-              </button>
-            </td>
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      删除
+                    </button>
+                  </td>
                 </tr>
               ))
             )}

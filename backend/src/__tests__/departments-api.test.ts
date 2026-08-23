@@ -103,7 +103,9 @@ describe('PUT /api/departments/:id', () => {
     await request(app).post('/api/departments').send({ name: '研发部' });
     const created2 = await request(app).post('/api/departments').send({ name: '产品部' });
 
-    const res = await request(app).put(`/api/departments/${created2.body.data.id}`).send({ name: '研发部' });
+    const res = await request(app)
+      .put(`/api/departments/${created2.body.data.id}`)
+      .send({ name: '研发部' });
     expect(res.status).toBe(409);
   });
 });

@@ -6,11 +6,7 @@
  */
 
 import { useRef, useState, useCallback, useEffect } from 'react';
-import type {
-  SeatWithAssignee,
-  CreateSeatDto,
-  UpdateSeatDto,
-} from '@seat-mgmt/shared';
+import type { SeatWithAssignee, CreateSeatDto, UpdateSeatDto } from '@seat-mgmt/shared';
 import { SeatType, SeatStatus } from '@seat-mgmt/shared';
 import {
   InteractionMode,
@@ -47,7 +43,12 @@ function getFillColor(area: string): string {
 const HANDLE_SIZE = 8;
 
 /** 8 个 resize 把手位置 */
-const HANDLES: Array<{ handle: ResizeHandle; cursor: string; getX: (w: number) => number; getY: (h: number) => number }> = [
+const HANDLES: Array<{
+  handle: ResizeHandle;
+  cursor: string;
+  getX: (w: number) => number;
+  getY: (h: number) => number;
+}> = [
   { handle: 'nw', cursor: 'nwse-resize', getX: () => 0, getY: () => 0 },
   { handle: 'n', cursor: 'ns-resize', getX: (w) => w / 2, getY: () => 0 },
   { handle: 'ne', cursor: 'nesw-resize', getX: (w) => w, getY: () => 0 },
@@ -96,159 +97,194 @@ export function FloorPlanEditor({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [mode, setMode] = useState<InteractionMode>(InteractionMode.IDLE);
   const [dragState, setDragState] = useState<DragState | null>(null);
-  const [drawRect, setDrawRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [drawRect, setDrawRect] = useState<{ x: number; y: number; w: number; h: number } | null>(
+    null,
+  );
   // 拖拽期间的本地视觉位置（B3 修复：mousemove 仅更新本地状态，mouseup 时才提交后端）
-  const [dragPreview, setDragPreview] = useState<{ id: number; x: number; y: number; w: number; h: number } | null>(null);
+  const [dragPreview, setDragPreview] = useState<{
+    id: number;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
 
   /** 客户端坐标 → SVG viewBox 坐标 */
-  const clientToSvg = useCallback((clientX: number, clientY: number): { x: number; y: number } => {
-    const svg = svgRef.current;
-    if (!svg) return { x: 0, y: 0 };
-    const rect = svg.getBoundingClientRect();
-    const scaleX = width / rect.width;
-    const scaleY = height / rect.height;
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
-    };
-  }, [width, height]);
+  const clientToSvg = useCallback(
+    (clientX: number, clientY: number): { x: number; y: number } => {
+      const svg = svgRef.current;
+      if (!svg) return { x: 0, y: 0 };
+      const rect = svg.getBoundingClientRect();
+      const scaleX = width / rect.width;
+      const scaleY = height / rect.height;
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY,
+      };
+    },
+    [width, height],
+  );
 
   /** SVG mousedown：空白区开始绘制，工位区开始移动/resize */
-  const handleMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    // 阻止默认行为（如文本选择）
-    e.preventDefault();
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      // 阻止默认行为（如文本选择）
+      e.preventDefault();
 
-    const target = e.target as SVGElement;
-    const seatId = target.getAttribute('data-seat-id');
-    // 安全：data-handle 属性仅由本组件 HANDLES 枚举值写入，运行时必为 ResizeHandle 之一
-const handleType = target.getAttribute('data-handle') as ResizeHandle | null;
+      const target = e.target as SVGElement;
+      const seatId = target.getAttribute('data-seat-id');
+      // 安全：data-handle 属性仅由本组件 HANDLES 枚举值写入，运行时必为 ResizeHandle 之一
+      const handleType = target.getAttribute('data-handle') as ResizeHandle | null;
 
-const pt = clientToSvg(e.clientX, e.clientY);
+      const pt = clientToSvg(e.clientX, e.clientY);
 
       if (handleType && selectedSeatId !== null) {
-      // 开始 resize
-      const seat = seats.find((s) => s.id === selectedSeatId);
-      if (!seat) return;
+        // 开始 resize
+        const seat = seats.find((s) => s.id === selectedSeatId);
+        if (!seat) return;
         const state: ResizeState = {
-        originX: seat.x,
-        originY: seat.y,
-        originW: seat.w,
-        originH: seat.h,
-        startX: pt.x,
-        startY: pt.y,
-      handle: handleType,
-      };
-      setDragState(state);
-      setMode(InteractionMode.RESIZING);
-    setDragPreview({ id: seat.id, x: seat.x, y: seat.y, w: seat.w, h: seat.h });
-return;
-    }
+          originX: seat.x,
+          originY: seat.y,
+          originW: seat.w,
+          originH: seat.h,
+          startX: pt.x,
+          startY: pt.y,
+          handle: handleType,
+        };
+        setDragState(state);
+        setMode(InteractionMode.RESIZING);
+        setDragPreview({ id: seat.id, x: seat.x, y: seat.y, w: seat.w, h: seat.h });
+        return;
+      }
 
       if (seatId) {
-      // 点击工位 → 选中并准备移动（W1 修复：先选中再进入移动模式）
-      const seat = seats.find((s) => s.id === Number(seatId));
+        // 点击工位 → 选中并准备移动（W1 修复：先选中再进入移动模式）
+        const seat = seats.find((s) => s.id === Number(seatId));
         if (!seat) return;
         onSelectSeat(seat);
         const state: MoveState = {
-        originX: seat.x,
-      originY: seat.y,
-      startX: pt.x,
-      startY: pt.y,
-      };
-    setDragState(state);
-setMode(InteractionMode.MOVING);
-    setDragPreview({ id: seat.id, x: seat.x, y: seat.y, w: seat.w, h: seat.h });
-    return;
-    }
+          originX: seat.x,
+          originY: seat.y,
+          startX: pt.x,
+          startY: pt.y,
+        };
+        setDragState(state);
+        setMode(InteractionMode.MOVING);
+        setDragPreview({ id: seat.id, x: seat.x, y: seat.y, w: seat.w, h: seat.h });
+        return;
+      }
 
-  // 空白处 → 开始绘制
-    setDrawRect({ x: pt.x, y: pt.y, w: 0, h: 0 });
-    setMode(InteractionMode.DRAWING);
-    setDragState({ startX: pt.x, startY: pt.y, currentX: pt.x, currentY: pt.y });
-  }, [clientToSvg, seats, selectedSeatId, onSelectSeat]);
+      // 空白处 → 开始绘制
+      setDrawRect({ x: pt.x, y: pt.y, w: 0, h: 0 });
+      setMode(InteractionMode.DRAWING);
+      setDragState({ startX: pt.x, startY: pt.y, currentX: pt.x, currentY: pt.y });
+    },
+    [clientToSvg, seats, selectedSeatId, onSelectSeat],
+  );
 
   /** SVG mousemove：实时更新绘制/移动/resize（B3 修复：仅更新本地视觉状态，不提交后端） */
-  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (mode === InteractionMode.IDLE) return;
-    e.preventDefault();
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      if (mode === InteractionMode.IDLE) return;
+      e.preventDefault();
 
-    const pt = clientToSvg(e.clientX, e.clientY);
+      const pt = clientToSvg(e.clientX, e.clientY);
 
-    if (mode === InteractionMode.DRAWING && dragState && 'currentX' in dragState) {
-      const newRect = normalizeRect(dragState.startX, dragState.startY, pt.x, pt.y);
-      setDrawRect(newRect);
-    } else if (mode === InteractionMode.MOVING && dragState && 'originX' in dragState && 'startX' in dragState) {
-      const moveState = dragState as MoveState;
-      const dx = pt.x - moveState.startX;
-      const dy = pt.y - moveState.startY;
-      const newX = Math.max(0, moveState.originX + dx);
-      const newY = Math.max(0, moveState.originY + dy);
-      // 仅更新本地视觉预览，不触发后端请求
-      setDragPreview((prev) => prev ? { ...prev, x: newX, y: newY } : null);
+      if (mode === InteractionMode.DRAWING && dragState && 'currentX' in dragState) {
+        const newRect = normalizeRect(dragState.startX, dragState.startY, pt.x, pt.y);
+        setDrawRect(newRect);
+      } else if (
+        mode === InteractionMode.MOVING &&
+        dragState &&
+        'originX' in dragState &&
+        'startX' in dragState
+      ) {
+        const moveState = dragState as MoveState;
+        const dx = pt.x - moveState.startX;
+        const dy = pt.y - moveState.startY;
+        const newX = Math.max(0, moveState.originX + dx);
+        const newY = Math.max(0, moveState.originY + dy);
+        // 仅更新本地视觉预览，不触发后端请求
+        setDragPreview((prev) => (prev ? { ...prev, x: newX, y: newY } : null));
       } else if (mode === InteractionMode.RESIZING && dragState && 'originW' in dragState) {
         const resizeState = dragState as ResizeState;
         const newRect = computeResizeRect(resizeState, pt.x, pt.y);
-      // 仅更新本地视觉预览，不触发后端请求
-    setDragPreview((prev) => prev ? {
-      ...prev,
-      x: Math.max(0, newRect.x),
-      y: Math.max(0, newRect.y),
-      w: Math.max(10, newRect.w),
-        h: Math.max(10, newRect.h),
-          } : null);
-          }
-          }, [mode, dragState, clientToSvg]);
+        // 仅更新本地视觉预览，不触发后端请求
+        setDragPreview((prev) =>
+          prev
+            ? {
+                ...prev,
+                x: Math.max(0, newRect.x),
+                y: Math.max(0, newRect.y),
+                w: Math.max(10, newRect.w),
+                h: Math.max(10, newRect.h),
+              }
+            : null,
+        );
+      }
+    },
+    [mode, dragState, clientToSvg],
+  );
 
-        /** SVG mouseup：完成绘制/移动/resize（B3 修复：移动/resize 在 mouseup 时一次性提交后端） */
-      const handleMouseUp = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    e.preventDefault();
+  /** SVG mouseup：完成绘制/移动/resize（B3 修复：移动/resize 在 mouseup 时一次性提交后端） */
+  const handleMouseUp = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      e.preventDefault();
 
-if (mode === InteractionMode.DRAWING && drawRect) {
-  // 完成绘制 — 宽高超 10px 才创建
-  if (drawRect.w >= 10 && drawRect.h >= 10) {
-    onSeatCreate({
-code: '',
-    area: '未分配',
-      type: SeatType.STANDARD,
-      x: drawRect.x,
-        y: drawRect.y,
-          w: drawRect.w,
-          h: drawRect.h,
-          status: SeatStatus.AVAILABLE,
+      if (mode === InteractionMode.DRAWING && drawRect) {
+        // 完成绘制 — 宽高超 10px 才创建
+        if (drawRect.w >= 10 && drawRect.h >= 10) {
+          onSeatCreate({
+            code: '',
+            area: '未分配',
+            type: SeatType.STANDARD,
+            x: drawRect.x,
+            y: drawRect.y,
+            w: drawRect.w,
+            h: drawRect.h,
+            status: SeatStatus.AVAILABLE,
           });
-          }
-          setDrawRect(null);
-          } else if (mode === InteractionMode.MOVING && dragPreview) {
-          // 移动结束，一次性提交后端
+        }
+        setDrawRect(null);
+      } else if (mode === InteractionMode.MOVING && dragPreview) {
+        // 移动结束，一次性提交后端
         onSeatUpdate(dragPreview.id, { x: dragPreview.x, y: dragPreview.y });
       } else if (mode === InteractionMode.RESIZING && dragPreview) {
-      // resize 结束，一次性提交后端
-    onSeatUpdate(dragPreview.id, {
-      x: dragPreview.x,
-    y: dragPreview.y,
-      w: dragPreview.w,
-    h: dragPreview.h,
-});
-    }
+        // resize 结束，一次性提交后端
+        onSeatUpdate(dragPreview.id, {
+          x: dragPreview.x,
+          y: dragPreview.y,
+          w: dragPreview.w,
+          h: dragPreview.h,
+        });
+      }
 
-  setMode(InteractionMode.IDLE);
-    setDragState(null);
-    setDragPreview(null);
-  }, [mode, drawRect, dragPreview, onSeatCreate, onSeatUpdate]);
+      setMode(InteractionMode.IDLE);
+      setDragState(null);
+      setDragPreview(null);
+    },
+    [mode, drawRect, dragPreview, onSeatCreate, onSeatUpdate],
+  );
 
   /** 点击工位选中 */
-  const handleSeatClick = useCallback((e: React.MouseEvent, seat: SeatWithAssignee) => {
-    e.stopPropagation();
-    onSelectSeat(seat);
-  }, [onSelectSeat]);
+  const handleSeatClick = useCallback(
+    (e: React.MouseEvent, seat: SeatWithAssignee) => {
+      e.stopPropagation();
+      onSelectSeat(seat);
+    },
+    [onSelectSeat],
+  );
 
   /** SVG 背景点击：取消选中 */
-  const handleBackgroundClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    // 只有直接点 SVG 背景才取消
-    if (e.target === e.currentTarget) {
-      onSelectSeat(null);
-    }
-  }, [onSelectSeat]);
+  const handleBackgroundClick = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      // 只有直接点 SVG 背景才取消
+      if (e.target === e.currentTarget) {
+        onSelectSeat(null);
+      }
+    },
+    [onSelectSeat],
+  );
 
   /** Delete 键删除选中工位（B2 修复：实际调用 onSeatDelete） */
   useEffect(() => {
@@ -256,18 +292,23 @@ code: '',
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedSeatId !== null) {
         // 只在没有 input/select/textarea 聚焦时触发
         const active = document.activeElement;
-        if (active && (active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA')) {
+        if (
+          active &&
+          (active.tagName === 'INPUT' ||
+            active.tagName === 'SELECT' ||
+            active.tagName === 'TEXTAREA')
+        ) {
           return;
         }
         e.preventDefault();
         // 先调 onSeatDelete 删除工位，再取消选中
         onSeatDelete(selectedSeatId);
-          onSelectSeat(null);
-        }
-      };
+        onSelectSeat(null);
+      }
+    };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedSeatId, onSeatDelete, onSelectSeat]);
+  }, [selectedSeatId, onSeatDelete, onSelectSeat]);
 
   const selectedSeat = seats.find((s) => s.id === selectedSeatId) ?? null;
 
@@ -284,9 +325,9 @@ code: '',
         onClick={handleBackgroundClick}
         onMouseLeave={() => {
           // S3 修复：mouseleave 时直接取消操作，不当作 mouseup 提交（避免越界坐标）
-            if (mode !== InteractionMode.IDLE) {
-          setMode(InteractionMode.IDLE);
-        setDragState(null);
+          if (mode !== InteractionMode.IDLE) {
+            setMode(InteractionMode.IDLE);
+            setDragState(null);
             setDrawRect(null);
             setDragPreview(null);
           }
@@ -341,7 +382,10 @@ code: '',
 
         {/* 选中工位的 resize 把手 — 拖拽预览时使用预览坐标 */}
         {(() => {
-          const handleSeat = selectedSeat && dragPreview && dragPreview.id === selectedSeat.id ? dragPreview : selectedSeat;
+          const handleSeat =
+            selectedSeat && dragPreview && dragPreview.id === selectedSeat.id
+              ? dragPreview
+              : selectedSeat;
           if (!handleSeat) return null;
           return (
             <g pointerEvents="all">

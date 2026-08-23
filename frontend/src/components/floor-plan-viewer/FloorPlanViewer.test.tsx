@@ -12,9 +12,51 @@ vi.mock('../../api/seat-api', () => ({
   seatApi: {
     listSeats: vi.fn().mockResolvedValue({
       data: [
-        { id: 1, code: 'A-001', area: 'A区', type: 'standard', x: 10, y: 10, w: 80, h: 60, floorPlanId: 1, status: 'available', createdAt: '', assigneeName: null, assigneeEmpNo: null },
-        { id: 2, code: 'A-002', area: 'B区', type: 'standard', x: 120, y: 10, w: 80, h: 60, floorPlanId: 1, status: 'occupied', createdAt: '', assigneeName: '张伟', assigneeEmpNo: 'EMP001' },
-        { id: 3, code: 'A-003', area: 'B区', type: 'standard', x: 230, y: 10, w: 80, h: 60, floorPlanId: 1, status: 'reserved', createdAt: '', assigneeName: '李娜', assigneeEmpNo: 'EMP002' },
+        {
+          id: 1,
+          code: 'A-001',
+          area: 'A区',
+          type: 'standard',
+          x: 10,
+          y: 10,
+          w: 80,
+          h: 60,
+          floorPlanId: 1,
+          status: 'available',
+          createdAt: '',
+          assigneeName: null,
+          assigneeEmpNo: null,
+        },
+        {
+          id: 2,
+          code: 'A-002',
+          area: 'B区',
+          type: 'standard',
+          x: 120,
+          y: 10,
+          w: 80,
+          h: 60,
+          floorPlanId: 1,
+          status: 'occupied',
+          createdAt: '',
+          assigneeName: '张伟',
+          assigneeEmpNo: 'EMP001',
+        },
+        {
+          id: 3,
+          code: 'A-003',
+          area: 'B区',
+          type: 'standard',
+          x: 230,
+          y: 10,
+          w: 80,
+          h: 60,
+          floorPlanId: 1,
+          status: 'reserved',
+          createdAt: '',
+          assigneeName: '李娜',
+          assigneeEmpNo: 'EMP002',
+        },
       ],
       total: 3,
       page: 1,
@@ -23,9 +65,11 @@ vi.mock('../../api/seat-api', () => ({
     }),
   },
   floorPlanApi: {
-    listFloorPlans: vi.fn().mockResolvedValue([
-      { id: 1, name: '一楼', imageUrl: '/floor.png', width: 800, height: 600, createdAt: '' },
-    ]),
+    listFloorPlans: vi
+      .fn()
+      .mockResolvedValue([
+        { id: 1, name: '一楼', imageUrl: '/floor.png', width: 800, height: 600, createdAt: '' },
+      ]),
     uploadFloorPlan: vi.fn(),
   },
 }));
@@ -38,8 +82,24 @@ vi.mock('../../api/client', () => ({
     }
     return Promise.resolve({
       data: [
-        { id: 1, empNo: 'EMP001', name: '张伟', departmentId: 1, departmentName: '研发部', seatId: 2, createdAt: '' },
-        { id: 2, empNo: 'EMP002', name: '李娜', departmentId: 1, departmentName: '研发部', seatId: 3, createdAt: '' },
+        {
+          id: 1,
+          empNo: 'EMP001',
+          name: '张伟',
+          departmentId: 1,
+          departmentName: '研发部',
+          seatId: 2,
+          createdAt: '',
+        },
+        {
+          id: 2,
+          empNo: 'EMP002',
+          name: '李娜',
+          departmentId: 1,
+          departmentName: '研发部',
+          seatId: 3,
+          createdAt: '',
+        },
       ],
       total: 2,
       page: 1,
@@ -118,9 +178,7 @@ describe('FloorPlanViewer', () => {
   });
 
   it('搜索命中工位高亮闪烁', async () => {
-    const { container } = render(
-      <FloorPlanViewer floorPlanId={1} searchQuery="张伟" />,
-    );
+    const { container } = render(<FloorPlanViewer floorPlanId={1} searchQuery="张伟" />);
 
     await waitFor(() => {
       const groups = container.querySelectorAll('g[data-seat-id]');
@@ -132,14 +190,13 @@ describe('FloorPlanViewer', () => {
     expect(seat2Rect.getAttribute('style')).toContain('animation');
 
     // 非命中工位不应有 animation（style 为 null 或不含 animation）
-    const seat1Style = container.querySelector('g[data-seat-id="1"] rect')?.getAttribute('style') ?? '';
+    const seat1Style =
+      container.querySelector('g[data-seat-id="1"] rect')?.getAttribute('style') ?? '';
     expect(seat1Style).not.toContain('animation');
   });
 
   it('按区域筛选生效', async () => {
-    const { container } = render(
-      <FloorPlanViewer floorPlanId={1} filters={{ area: 'B区' }} />,
-    );
+    const { container } = render(<FloorPlanViewer floorPlanId={1} filters={{ area: 'B区' }} />);
 
     await waitFor(() => {
       const groups = container.querySelectorAll('g[data-seat-id]');
@@ -161,9 +218,7 @@ describe('FloorPlanViewer', () => {
 
   it('点击工位触发 onSeatClick 回调', async () => {
     const onSeatClick = vi.fn();
-    const { container } = render(
-      <FloorPlanViewer floorPlanId={1} onSeatClick={onSeatClick} />,
-    );
+    const { container } = render(<FloorPlanViewer floorPlanId={1} onSeatClick={onSeatClick} />);
 
     await waitFor(() => {
       expect(container.querySelector('g[data-seat-id="1"]')).toBeTruthy();

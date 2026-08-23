@@ -97,14 +97,18 @@ describe('GET /api/stats/trends', () => {
   it('有历史数据时应返回历史趋势', async () => {
     // 先写入 stats_daily 历史数据
     const db = getDb();
-    db.prepare(`
+    db.prepare(
+      `
       INSERT OR REPLACE INTO stats_daily (date, total_seats, occupied_seats, available_seats, reserved_seats, utilization_rate)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run('2024-01-01', 10, 5, 5, 0, 50);
-    db.prepare(`
+    `,
+    ).run('2024-01-01', 10, 5, 5, 0, 50);
+    db.prepare(
+      `
       INSERT OR REPLACE INTO stats_daily (date, total_seats, occupied_seats, available_seats, reserved_seats, utilization_rate)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run('2024-01-02', 10, 6, 4, 0, 60);
+    `,
+    ).run('2024-01-02', 10, 6, 4, 0, 60);
 
     const res = await request(app).get('/api/stats/trends?days=365');
     expect(res.status).toBe(200);

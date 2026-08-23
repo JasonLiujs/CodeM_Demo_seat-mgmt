@@ -13,10 +13,7 @@
 import { getDb } from '../db/connection.js';
 import { AppError } from '../middleware/error.js';
 import { AssignmentType, ChangeLogAction } from '@seat-mgmt/shared';
-import type {
-  Assignment,
-  AssignmentStatus,
-} from '@seat-mgmt/shared';
+import type { Assignment, AssignmentStatus } from '@seat-mgmt/shared';
 
 /** 分配记录数据库行 */
 interface AssignmentRow {
@@ -74,10 +71,12 @@ function writeChangeLog(
     reason?: string | null;
   },
 ): void {
-  db.prepare(`
+  db.prepare(
+    `
     INSERT INTO change_logs (action, seat_id, employee_id, old_seat_id, new_seat_id, operator, reason)
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(
+  `,
+  ).run(
     params.action,
     params.seatId ?? null,
     params.employeeId ?? null,
@@ -117,13 +116,11 @@ export class AssignService {
       params.push(filter.status);
     }
 
-    const whereClause = conditions.length > 0
-      ? `WHERE ${conditions.join(' AND ')}`
-      : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const rows = db.prepare(
-      `SELECT * FROM assignments ${whereClause} ORDER BY id ASC`,
-    ).all(...params) as AssignmentRow[];
+    const rows = db
+      .prepare(`SELECT * FROM assignments ${whereClause} ORDER BY id ASC`)
+      .all(...params) as AssignmentRow[];
 
     return rows.map(mapAssignmentRow);
   }
@@ -133,7 +130,8 @@ export class AssignService {
    */
   getAssignmentById(id: number): Assignment {
     const db = getDb();
-    const row = db.prepare('SELECT * FROM assignments WHERE id = ?').get(id) as AssignmentRow | undefined;
+    const row = db.prepare('SELECT * FROM assignments WHERE id = ?').get(id) as
+      AssignmentRow | undefined;
     if (!row) {
       throw new AppError(404, `分配记录 ID ${id} 不存在`, 'ASSIGNMENT_NOT_FOUND');
     }
@@ -174,16 +172,19 @@ export class AssignService {
     }
 
     // 校验员工存在
-    const employee = db.prepare('SELECT * FROM employees WHERE id = ?').get(employeeId) as EmployeeRow | undefined;
+    const employee = db.prepare('SELECT * FROM employees WHERE id = ?').get(employeeId) as
+      EmployeeRow | undefined;
     if (!employee) {
       throw new AppError(404, `员工 ID ${employeeId} 不存在`, 'EMPLOYEE_NOT_FOUND');
     }
 
     // 校验员工无 type='fixed' 的 active assignment
     if (type === AssignmentType.FIXED) {
-      const existingFixed = db.prepare(
-        `SELECT id FROM assignments WHERE employee_id = ? AND type = 'fixed' AND status = 'active'`,
-      ).get(employeeId);
+      const existingFixed = db
+        .prepare(
+          `SELECT id FROM assignments WHERE employee_id = ? AND type = 'fixed' AND status = 'active'`,
+        )
+        .get(employeeId);
       if (existingFixed) {
         throw new AppError(
           409,
@@ -194,10 +195,14 @@ export class AssignService {
     }
 
     // 插入分配记录
-    const result = db.prepare(`
+    const result = db
+      .prepare(
+        `
       INSERT INTO assignments (seat_id, employee_id, assigned_by, type, status)
       VALUES (?, ?, ?, ?, 'active')
-    `).run(seatId, employeeId, assignedBy, type);
+    `,
+      )
+      .run(seatId, employeeId, assignedBy, type);
 
     // 更新工位状态为 occupied
     db.prepare('UPDATE seats SET status = ? WHERE id = ?').run('occupied', seatId);
@@ -213,7 +218,9 @@ export class AssignService {
     });
 
     // 查回新插入的分配记录
-    const row = db.prepare('SELECT * FROM assignments WHERE id = ?').get(result.lastInsertRowid) as AssignmentRow;
+    const row = db
+      .prepare('SELECT * FROM assignments WHERE id = ?')
+      .get(result.lastInsertRowid) as AssignmentRow;
     return mapAssignmentRow(row);
   }
 
@@ -226,7 +233,8 @@ export class AssignService {
     const db = getDb();
 
     // 查询分配记录
-    const assignment = db.prepare('SELECT * FROM assignments WHERE id = ?').get(id) as AssignmentRow | undefined;
+    const assignment = db.prepare('SELECT * FROM assignments WHERE id = ?').get(id) as
+      AssignmentRow | undefined;
     if (!assignment) {
       throw new AppError(404, `分配记录 ID ${id} 不存在`, 'ASSIGNMENT_NOT_FOUND');
     }
@@ -247,8 +255,11 @@ export class AssignService {
     db.prepare('UPDATE seats SET status = ? WHERE id = ?').run('available', assignment.seat_id);
 
     // 写变更日志
-    const seat = db.prepare('SELECT code FROM seats WHERE id = ?').get(assignment.seat_id) as { code: string } | undefined;
-    const employee = db.prepare('SELECT name FROM employees WHERE id = ?').get(assignment.employee_id) as { name: string } | undefined;
+    const seat = db.prepare('SELECT code FROM seats WHERE id = ?').get(assignment.seat_id) as
+      { code: string } | undefined;
+    const employee = db
+      .prepare('SELECT name FROM employees WHERE id = ?')
+      .get(assignment.employee_id) as { name: string } | undefined;
     writeChangeLog(db, {
       action: ChangeLogAction.UNASSIGN,
       seatId: assignment.seat_id,
@@ -271,13 +282,15 @@ export class AssignService {
     const db = getDb();
 
     // 校验员工存在
-    const employee = db.prepare('SELECT * FROM employees WHERE id = ?').get(employeeId) as EmployeeRow | undefined;
+    const employee = db.prepare('SELECT * FROM employees WHERE id = ?').get(employeeId) as
+      EmployeeRow | undefined;
     if (!employee) {
       throw new AppError(404, `员工 ID ${employeeId} 不存在`, 'EMPLOYEE_NOT_FOUND');
     }
 
     // 校验新工位存在且可用
-    const newSeat = db.prepare('SELECT * FROM seats WHERE id = ?').get(newSeatId) as SeatRow | undefined;
+    const newSeat = db.prepare('SELECT * FROM seats WHERE id = ?').get(newSeatId) as
+      SeatRow | undefined;
     if (!newSeat) {
       throw new AppError(404, `工位 ID ${newSeatId} 不存在`, 'SEAT_NOT_FOUND');
     }
@@ -290,9 +303,11 @@ export class AssignService {
     }
 
     // 查找员工当前 active fixed assignment
-    const oldAssignment = db.prepare(
-      `SELECT * FROM assignments WHERE employee_id = ? AND type = 'fixed' AND status = 'active'`,
-    ).get(employeeId) as AssignmentRow | undefined;
+    const oldAssignment = db
+      .prepare(
+        `SELECT * FROM assignments WHERE employee_id = ? AND type = 'fixed' AND status = 'active'`,
+      )
+      .get(employeeId) as AssignmentRow | undefined;
 
     if (!oldAssignment) {
       throw new AppError(
@@ -303,21 +318,29 @@ export class AssignService {
     }
 
     const oldSeatId = oldAssignment.seat_id;
-    const oldSeat = db.prepare('SELECT code FROM seats WHERE id = ?').get(oldSeatId) as { code: string } | undefined;
+    const oldSeat = db.prepare('SELECT code FROM seats WHERE id = ?').get(oldSeatId) as
+      { code: string } | undefined;
 
     // 事务执行：旧取消 + 新分配 + 状态更新 + 日志
     const newId = db.transaction(() => {
       // 旧分配设为 inactive
-      db.prepare('UPDATE assignments SET status = ? WHERE id = ?').run('inactive', oldAssignment.id);
+      db.prepare('UPDATE assignments SET status = ? WHERE id = ?').run(
+        'inactive',
+        oldAssignment.id,
+      );
 
       // 旧工位恢复 available
       db.prepare('UPDATE seats SET status = ? WHERE id = ?').run('available', oldSeatId);
 
       // 新分配记录
-      const ins = db.prepare(`
+      const ins = db
+        .prepare(
+          `
         INSERT INTO assignments (seat_id, employee_id, assigned_by, type, status)
         VALUES (?, ?, ?, ?, 'active')
-      `).run(newSeatId, employeeId, operator, AssignmentType.FIXED);
+      `,
+        )
+        .run(newSeatId, employeeId, operator, AssignmentType.FIXED);
 
       // 新工位设为 occupied
       db.prepare('UPDATE seats SET status = ? WHERE id = ?').run('occupied', newSeatId);
@@ -364,7 +387,12 @@ export class AssignService {
     db.transaction(() => {
       for (const pair of pairs) {
         // 复用 assign 的逻辑（事务内调用会共享同一个 db 连接）
-        const assignment = this.assign(pair.seatId, pair.employeeId, assignedBy, AssignmentType.FIXED);
+        const assignment = this.assign(
+          pair.seatId,
+          pair.employeeId,
+          assignedBy,
+          AssignmentType.FIXED,
+        );
         results.push(assignment);
         insertedIds.push(assignment.id);
       }
@@ -393,22 +421,18 @@ export class AssignService {
     const db = getDb();
 
     // 查找部门所有员工
-    const employees = db.prepare(
-      'SELECT * FROM employees WHERE department_id = ? ORDER BY id ASC',
-    ).all(deptId) as EmployeeRow[];
+    const employees = db
+      .prepare('SELECT * FROM employees WHERE department_id = ? ORDER BY id ASC')
+      .all(deptId) as EmployeeRow[];
 
     if (employees.length === 0) {
-      throw new AppError(
-        404,
-        `部门 ID ${deptId} 下无员工或部门不存在`,
-        'DEPARTMENT_NO_EMPLOYEES',
-      );
+      throw new AppError(404, `部门 ID ${deptId} 下无员工或部门不存在`, 'DEPARTMENT_NO_EMPLOYEES');
     }
 
     // 查找目标区域所有空闲工位
-    const availableSeats = db.prepare(
-      `SELECT * FROM seats WHERE area = ? AND status = 'available' ORDER BY id ASC`,
-    ).all(targetArea) as SeatRow[];
+    const availableSeats = db
+      .prepare(`SELECT * FROM seats WHERE area = ? AND status = 'available' ORDER BY id ASC`)
+      .all(targetArea) as SeatRow[];
 
     if (availableSeats.length < employees.length) {
       throw new AppError(
@@ -425,25 +449,33 @@ export class AssignService {
         const targetSeat = availableSeats[i];
 
         // 查找员工当前 active fixed assignment
-        const oldAssignment = db.prepare(
-          `SELECT * FROM assignments WHERE employee_id = ? AND type = 'fixed' AND status = 'active'`,
-        ).get(employee.id) as AssignmentRow | undefined;
+        const oldAssignment = db
+          .prepare(
+            `SELECT * FROM assignments WHERE employee_id = ? AND type = 'fixed' AND status = 'active'`,
+          )
+          .get(employee.id) as AssignmentRow | undefined;
 
         if (oldAssignment) {
           // 有旧工位 → 执行转移
           const oldSeatId = oldAssignment.seat_id;
-          const oldSeat = db.prepare('SELECT code FROM seats WHERE id = ?').get(oldSeatId) as { code: string } | undefined;
+          const oldSeat = db.prepare('SELECT code FROM seats WHERE id = ?').get(oldSeatId) as
+            { code: string } | undefined;
 
           // 旧分配设为 inactive
-          db.prepare('UPDATE assignments SET status = ? WHERE id = ?').run('inactive', oldAssignment.id);
+          db.prepare('UPDATE assignments SET status = ? WHERE id = ?').run(
+            'inactive',
+            oldAssignment.id,
+          );
           // 旧工位恢复 available
           db.prepare('UPDATE seats SET status = ? WHERE id = ?').run('available', oldSeatId);
 
           // 新分配记录
-          db.prepare(`
+          db.prepare(
+            `
             INSERT INTO assignments (seat_id, employee_id, assigned_by, type, status)
             VALUES (?, ?, ?, ?, 'active')
-          `).run(targetSeat.id, employee.id, operator, AssignmentType.FIXED);
+          `,
+          ).run(targetSeat.id, employee.id, operator, AssignmentType.FIXED);
 
           // 新工位设为 occupied
           db.prepare('UPDATE seats SET status = ? WHERE id = ?').run('occupied', targetSeat.id);
@@ -460,10 +492,12 @@ export class AssignService {
           });
         } else {
           // 无旧工位 → 直接分配
-          db.prepare(`
+          db.prepare(
+            `
             INSERT INTO assignments (seat_id, employee_id, assigned_by, type, status)
             VALUES (?, ?, ?, ?, 'active')
-          `).run(targetSeat.id, employee.id, operator, AssignmentType.FIXED);
+          `,
+          ).run(targetSeat.id, employee.id, operator, AssignmentType.FIXED);
 
           db.prepare('UPDATE seats SET status = ? WHERE id = ?').run('occupied', targetSeat.id);
 

@@ -97,9 +97,7 @@ describe('POST /api/assignments — 分配工位', () => {
   });
 
   it('缺少 assignedBy 应返回 400', async () => {
-    const res = await request(app)
-      .post('/api/assignments')
-      .send({ seatId: 1, employeeId: 1 });
+    const res = await request(app).post('/api/assignments').send({ seatId: 1, employeeId: 1 });
     expect(res.status).toBe(400);
   });
 });

@@ -44,7 +44,11 @@ describe('SeatService', () => {
     });
 
     it('应支持按状态筛选', () => {
-      const result = seatService.listSeats({ status: SeatStatus.MAINTENANCE, page: 1, pageSize: 20 });
+      const result = seatService.listSeats({
+        status: SeatStatus.MAINTENANCE,
+        page: 1,
+        pageSize: 20,
+      });
       expect(result.data).toHaveLength(1);
       expect(result.data[0].status).toBe('maintenance');
     });

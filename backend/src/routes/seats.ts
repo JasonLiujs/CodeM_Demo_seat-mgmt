@@ -25,7 +25,7 @@ seatsRouter.get('/', (req, res, next) => {
 
     const { page, pageSize, ...filter } = parsed.data;
     const result = seatService.listSeats({
-      ...filter as SeatFilterDto,
+      ...(filter as SeatFilterDto),
       page,
       pageSize,
     });
