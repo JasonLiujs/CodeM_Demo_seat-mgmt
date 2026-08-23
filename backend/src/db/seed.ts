@@ -1,9 +1,14 @@
 /**
  * 种子数据脚本
- * 插入演示用的初始数据：部门、平面图（含 SVG 底图）、工位（坐标对齐）、
- * 员工、分配记录、预约记录、变更日志、每日统计快照。
  *
- * 使用 INSERT OR IGNORE 保证可重复执行（依赖 UNIQUE 约束去重）。
+ * 两个用途分离：
+ * - runSeed()      单元测试基线：小规模固定 id 数据（10 工位/2 平面图/4 部门/8 员工），
+ *                  对齐各测试文件里写死的 id 与数量断言。测试在 beforeEach 调用。
+ * - runDemoSeed()  生产演示数据：先跑 runSeed()，再追加演示工位（坐标对齐 SVG 底图）、
+ *                  更多员工、分配/预约/维护记录、变更日志、7 天统计快照。
+ *                  生产环境灌数据用（npm run seed）。
+ *
+ * 均用 INSERT OR IGNORE / 显式 id，保证可重复执行。
  */
 
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -17,200 +22,192 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** uploads 目录（与 app.ts / floor-plans.ts 的 uploadsDir 一致：backend/uploads） */
 const UPLOADS_DIR = join(__dirname, '..', '..', 'uploads');
-/** 底图文件名与对外 URL */
 const FLOOR_PLAN_FILENAME = 'floor-plan-main.svg';
 const FLOOR_PLAN_URL = `/uploads/${FLOOR_PLAN_FILENAME}`;
 
-/**
- * 把 SVG 底图写入 backend/uploads/，使 /uploads/floor-plan-main.svg 可访问。
- * 每次 seed 都重写，保证底图与代码版本一致（uploads 被 gitignore，部署时由 seed 生成）。
- */
+/** 把 SVG 底图写入 backend/uploads/（uploads 被 gitignore，部署时由 seed 生成） */
 function writeFloorPlanImage(): void {
   mkdirSync(UPLOADS_DIR, { recursive: true });
   writeFileSync(join(UPLOADS_DIR, FLOOR_PLAN_FILENAME), buildFloorPlanSvg(), 'utf-8');
-  console.log(`[seed] 平面图底图已写入 ${FLOOR_PLAN_URL}`);
 }
 
-interface SeatSeed {
-  code: string;
-  area: string;
-  type: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  floorPlanId: number;
-  status: string;
-}
+/**
+ * runSeed — 单元测试基线数据（与历史 seed 完全一致，勿改 id/数量，否则测试断言失效）
+ */
+export function runSeed(): void {
+  runMigrations();
+  const db = getDb();
 
-/** 生成 A/B 两个开放办公区的工位阵列（坐标与 SVG 底图网格对齐） */
-function buildOfficeSeats(): SeatSeed[] {
-  const seats: SeatSeed[] = [];
-  // 底图网格：A 区 x=60 起、B 区 x=660 起，y=90 起，cell 96x85，工位略小居中（60x56）
-  const cols = 5;
-  const rows = 4;
-  const cellW = 96;
-  const cellH = 85;
-  const seatW = 60;
-  const seatH = 56;
-  const offsetX = (cellW - seatW) / 2;   // 18
-  const offsetY = (cellH - seatH) / 2;   // ~14
+  const insertDept = db.prepare('INSERT OR IGNORE INTO departments (id, name) VALUES (?, ?)');
+  insertDept.run(1, '研发部');
+  insertDept.run(2, '产品部');
+  insertDept.run(3, '设计部');
+  insertDept.run(4, '市场部');
 
-  const areas: Array<{ prefix: string; area: string; baseX: number; baseY: number; planId: number }> = [
-    { prefix: 'A', area: 'A区', baseX: 60, baseY: 90, planId: 1 },
-    { prefix: 'B', area: 'B区', baseX: 660, baseY: 90, planId: 1 },
+  const insertPlan = db.prepare(
+    'INSERT OR IGNORE INTO floor_plans (id, name, image_url, width, height) VALUES (?, ?, ?, ?, ?)',
+  );
+  insertPlan.run(1, '3楼-A区', '', 1920, 1080);
+  insertPlan.run(2, '3楼-B区', '', 1920, 1080);
+
+  const insertSeat = db.prepare(`
+    INSERT OR IGNORE INTO seats (id, code, area, type, x, y, w, h, floor_plan_id, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const seatData: Array<[number, string, string, string, number, number, number, number, number, string]> = [
+    [1, 'A-001', 'A区', 'standard', 100, 100, 60, 60, 1, 'available'],
+    [2, 'A-002', 'A区', 'standard', 200, 100, 60, 60, 1, 'available'],
+    [3, 'A-003', 'A区', 'standard', 300, 100, 60, 60, 1, 'available'],
+    [4, 'A-004', 'A区', 'standard', 400, 100, 60, 60, 1, 'available'],
+    [5, 'A-005', 'A区', 'standing', 500, 100, 60, 60, 1, 'available'],
+    [6, 'B-001', 'B区', 'standard', 100, 300, 60, 60, 2, 'available'],
+    [7, 'B-002', 'B区', 'standard', 200, 300, 60, 60, 2, 'available'],
+    [8, 'B-003', 'B区', 'standard', 300, 300, 60, 60, 2, 'available'],
+    [9, 'B-004', 'B区', 'private', 400, 300, 80, 80, 2, 'available'],
+    [10, 'B-005', 'B区', 'meeting', 500, 300, 120, 80, 2, 'maintenance'],
   ];
+  for (const row of seatData) insertSeat.run(...row);
 
-  let seq = 1;
+  const insertEmp = db.prepare(`
+    INSERT OR IGNORE INTO employees (id, emp_no, name, department_id, seat_id)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+  const empData: Array<[number, string, string, number | null, number | null]> = [
+    [1, 'EMP001', '张伟', 1, null],
+    [2, 'EMP002', '李娜', 1, null],
+    [3, 'EMP003', '王芳', 2, null],
+    [4, 'EMP004', '刘洋', 2, null],
+    [5, 'EMP005', '陈静', 3, null],
+    [6, 'EMP006', '杨光', 3, null],
+    [7, 'EMP007', '赵敏', 4, null],
+    [8, 'EMP008', '孙磊', 1, null],
+  ];
+  for (const row of empData) insertEmp.run(...row);
+
+  console.log('[seed] 基线种子数据已插入');
+}
+
+/** 演示工位（坐标对齐 SVG 底图，id 从 100 起避开基线） */
+function buildDemoSeats(): Array<[number, string, string, string, number, number, number, number, number, string]> {
+  const seats: Array<[number, string, string, string, number, number, number, number, number, string]> = [];
+  const cols = 5, rows = 4, cellW = 96, cellH = 85, seatW = 60, seatH = 56;
+  const offX = (cellW - seatW) / 2, offY = (cellH - seatH) / 2;
+  const areas = [
+    { prefix: 'A', area: 'A区', baseX: 60, baseY: 90 },
+    { prefix: 'B', area: 'B区', baseX: 660, baseY: 90 },
+  ];
+  let id = 100;
   for (const a of areas) {
+    let seq = 6; // A-006 / B-006 起（1~5 为基线）
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const code = `${a.prefix}-${String(seq).padStart(3, '0')}`;
-        seats.push({
-          code,
-          area: a.area,
-          type: 'standard',
-          x: a.baseX + c * cellW + offsetX,
-          y: a.baseY + r * cellH + offsetY,
-          w: seatW,
-          h: seatH,
-          floorPlanId: a.planId,
-          status: 'available',
-        });
+        seats.push([
+          id++,
+          `${a.prefix}-${String(seq).padStart(3, '0')}`,
+          a.area, 'standard',
+          a.baseX + c * cellW + offX, a.baseY + r * cellH + offY, seatW, seatH, 1, 'available',
+        ]);
         seq++;
       }
     }
-    seq = 1; // 每个区重新编号
   }
+  // 会议室 M-101（底图房间 x=870~1160, y=570~750）
+  const meeting: Array<[number, number, number]> = [[950, 600, 40], [1000, 600, 40], [1050, 600, 40], [950, 700, 40], [1000, 700, 40], [1050, 700, 40]];
+  meeting.forEach(([x, y, s], i) => {
+    seats.push([id++, `M-101-${i + 1}`, '会议室', 'meeting', x, y, s, s, 1, 'available']);
+  });
+  // 经理室 P-001/P-002
+  seats.push([id++, 'P-001', '经理室', 'private', 668, 630, 56, 60, 1, 'available']);
+  seats.push([id++, 'P-002', '经理室', 'private', 773, 630, 56, 60, 1, 'available']);
   return seats;
 }
 
-/** 会议室 + 经理室（落在底图对应房间内） */
-function buildRoomSeats(): SeatSeed[] {
-  return [
-    // 会议室 M-101（房间 x=870~1160, y=570~750，会议桌附近放 6 个座位）
-    { code: 'M-101-1', area: '会议室', type: 'meeting', x: 950, y: 600, w: 40, h: 40, floorPlanId: 1, status: 'available' },
-    { code: 'M-101-2', area: '会议室', type: 'meeting', x: 1000, y: 600, w: 40, h: 40, floorPlanId: 1, status: 'available' },
-    { code: 'M-101-3', area: '会议室', type: 'meeting', x: 1050, y: 600, w: 40, h: 40, floorPlanId: 1, status: 'available' },
-    { code: 'M-101-4', area: '会议室', type: 'meeting', x: 950, y: 700, w: 40, h: 40, floorPlanId: 1, status: 'available' },
-    { code: 'M-101-5', area: '会议室', type: 'meeting', x: 1000, y: 700, w: 40, h: 40, floorPlanId: 1, status: 'available' },
-    { code: 'M-101-6', area: '会议室', type: 'meeting', x: 1050, y: 700, w: 40, h: 40, floorPlanId: 1, status: 'available' },
-    // 经理室 P-001（x=640~745, y=570~750）
-    { code: 'P-001', area: '经理室', type: 'private', x: 668, y: 630, w: 56, h: 60, floorPlanId: 1, status: 'available' },
-    // 经理室 P-002（x=745~850, y=570~750）
-    { code: 'P-002', area: '经理室', type: 'private', x: 773, y: 630, w: 56, h: 60, floorPlanId: 1, status: 'available' },
-  ];
-}
-
-/** 执行种子数据插入 */
-export function runSeed(): void {
-  runMigrations();
+/**
+ * runDemoSeed — 生产演示数据（基线之上追加演示工位/员工/分配/预约/维护/统计 + SVG 底图）
+ */
+export function runDemoSeed(): void {
+  runSeed(); // 先保证基线数据存在
   writeFloorPlanImage();
 
   const db = getDb();
 
-  // --- 部门 ---
+  // 补 2 个演示部门（基线已有 1~4）
   const insertDept = db.prepare('INSERT OR IGNORE INTO departments (id, name) VALUES (?, ?)');
-  const depts: Array<[number, string]> = [
-    [1, '研发部'],
-    [2, '产品部'],
-    [3, '设计部'],
-    [4, '市场部'],
-    [5, '运营部'],
-    [6, '人事行政部'],
-  ];
-  for (const d of depts) insertDept.run(...d);
+  insertDept.run(5, '运营部');
+  insertDept.run(6, '人事行政部');
 
-  // --- 楼层平面图（指向 SVG 底图） ---
-  const insertPlan = db.prepare(
-    'INSERT OR IGNORE INTO floor_plans (id, name, image_url, width, height) VALUES (?, ?, ?, ?, ?)',
-  );
-  insertPlan.run(1, '3楼 · 办公区', FLOOR_PLAN_URL, FLOOR_PLAN_WIDTH, FLOOR_PLAN_HEIGHT);
+  // 平面图 id=1 指向 SVG 底图（基线 id=1 是空 image_url，这里更新指向底图）
+  db.prepare('UPDATE floor_plans SET image_url = ?, name = ?, width = ?, height = ? WHERE id = 1')
+    .run(FLOOR_PLAN_URL, '3楼 · 办公区', FLOOR_PLAN_WIDTH, FLOOR_PLAN_HEIGHT);
 
-  // --- 工位（坐标对齐底图） ---
+  // 演示工位（id 100+）
   const insertSeat = db.prepare(`
-    INSERT OR IGNORE INTO seats (code, area, type, x, y, w, h, floor_plan_id, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO seats (id, code, area, type, x, y, w, h, floor_plan_id, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  const allSeats = [...buildOfficeSeats(), ...buildRoomSeats()];
-  for (const s of allSeats) {
-    insertSeat.run(s.code, s.area, s.type, s.x, s.y, s.w, s.h, s.floorPlanId, s.status);
-  }
+  for (const row of buildDemoSeats()) insertSeat.run(...row);
 
-  // 工位 id 按 code 查回（用于分配/预约/维护标记）
   const seatIdByCode = new Map<string, number>();
-  for (const row of db.prepare('SELECT id, code FROM seats').all() as Array<{ id: number; code: string }>) {
-    seatIdByCode.set(row.code, row.id);
+  for (const r of db.prepare('SELECT id, code FROM seats').all() as Array<{ id: number; code: string }>) {
+    seatIdByCode.set(r.code, r.id);
   }
 
-  // --- 员工 ---
+  // 演示员工（id 从 100 起，避开基线 1~8；EMP001/EMP002 等基线员工保持无分配）
   const insertEmp = db.prepare(`
-    INSERT OR IGNORE INTO employees (emp_no, name, department_id, seat_id)
-    VALUES (?, ?, ?, ?)
+    INSERT OR IGNORE INTO employees (id, emp_no, name, department_id, seat_id)
+    VALUES (?, ?, ?, ?, ?)
   `);
-  // [emp_no, name, dept_id, 分配的工位code(可空)]
-  const empData: Array<[string, string, number, string | null]> = [
-    ['EMP001', '张伟', 1, 'A-001'],
-    ['EMP002', '李娜', 1, 'A-002'],
-    ['EMP003', '王芳', 1, 'A-003'],
-    ['EMP004', '刘洋', 1, 'A-006'],
-    ['EMP005', '陈静', 1, 'A-007'],
-    ['EMP006', '杨光', 2, 'A-008'],
-    ['EMP007', '赵敏', 2, 'A-011'],
-    ['EMP008', '孙磊', 2, 'A-012'],
-    ['EMP009', '周杰', 2, 'B-001'],
-    ['EMP010', '吴倩', 3, 'B-002'],
-    ['EMP011', '郑爽', 3, 'B-003'],
-    ['EMP012', '冯浩', 3, 'B-006'],
-    ['EMP013', '褚燕', 4, 'B-007'],
-    ['EMP014', '卫民', 4, 'B-008'],
-    ['EMP015', '蒋丽', 4, 'B-011'],
-    ['EMP016', '沈涛', 5, 'B-012'],
-    ['EMP017', '韩雪', 5, null],
-    ['EMP018', '曹阳', 5, null],
-    ['EMP019', '严华', 6, 'P-001'],
-    ['EMP020', '魏琳', 6, 'P-002'],
-    ['EMP021', '陶俊', 1, null],
-    ['EMP022', '姜薇', 2, null],
-    ['EMP023', '戚斌', 3, null],
-    ['EMP024', '谢雯', 4, null],
+  const demoEmps: Array<[number, string, string, number, string | null]> = [
+    [100, 'EMP100', '周杰', 2, 'A-006'],
+    [101, 'EMP101', '吴倩', 3, 'A-007'],
+    [102, 'EMP102', '郑爽', 3, 'A-008'],
+    [103, 'EMP103', '冯浩', 1, 'A-009'],
+    [104, 'EMP104', '褚燕', 4, 'A-010'],
+    [105, 'EMP105', '卫民', 4, 'A-011'],
+    [106, 'EMP106', '蒋丽', 2, 'B-006'],
+    [107, 'EMP107', '沈涛', 5, 'B-007'],
+    [108, 'EMP108', '韩雪', 5, 'B-008'],
+    [109, 'EMP109', '曹阳', 5, 'B-009'],
+    [110, 'EMP110', '严华', 6, 'B-010'],
+    [111, 'EMP111', '魏琳', 6, 'B-011'],
+    [112, 'EMP112', '陶俊', 1, 'B-012'],
+    [113, 'EMP113', '姜薇', 2, 'B-013'],
+    [114, 'EMP114', '戚斌', 3, 'P-001'],
+    [115, 'EMP115', '谢雯', 4, 'P-002'],
+    [116, 'EMP116', '韩雪梅', 5, null],
+    [117, 'EMP117', '曹志刚', 5, null],
+    [118, 'EMP118', '严立婷', 6, null],
   ];
-  for (const [empNo, name, deptId, seatCode] of empData) {
-    const seatId = seatCode ? (seatIdByCode.get(seatCode) ?? null) : null;
-    insertEmp.run(empNo, name, deptId, seatId);
+  for (const [id, empNo, name, deptId, seatCode] of demoEmps) {
+    insertEmp.run(id, empNo, name, deptId, seatCode ? (seatIdByCode.get(seatCode) ?? null) : null);
   }
 
-  // 把已分配工位标记为 occupied，并写 assignments 记录
-  const empIdByNo = new Map<string, number>();
-  for (const row of db.prepare('SELECT id, emp_no FROM employees').all() as Array<{ id: number; emp_no: string }>) {
-    empIdByNo.set(row.emp_no, row.id);
-  }
+  // 标记演示分配（occupied）+ assignments + change_logs
   const markOccupied = db.prepare("UPDATE seats SET status = 'occupied' WHERE code = ?");
   const insertAssign = db.prepare(`
     INSERT INTO assignments (seat_id, employee_id, assigned_by, type, status)
-    VALUES (?, ?, ?, 'fixed', 'active')
+    VALUES (?, ?, '系统管理员', 'fixed', 'active')
   `);
-  const insertChangeLog = db.prepare(`
+  const insertLog = db.prepare(`
     INSERT INTO change_logs (action, seat_id, employee_id, new_seat_id, operator, reason)
-    VALUES ('assign', ?, ?, ?, ?, ?)
+    VALUES ('assign', ?, ?, ?, '系统管理员', '初始分配')
   `);
-  for (const [empNo, , , seatCode] of empData) {
+  for (const [id, , , , seatCode] of demoEmps) {
     if (!seatCode) continue;
     const seatId = seatIdByCode.get(seatCode);
-    const empId = empIdByNo.get(empNo);
-    if (!seatId || !empId) continue;
+    if (!seatId) continue;
     markOccupied.run(seatCode);
-    insertAssign.run(seatId, empId, '系统管理员');
-    insertChangeLog.run(seatId, empId, seatId, '系统管理员', '初始分配');
+    insertAssign.run(seatId, id);
+    insertLog.run(seatId, id, seatId);
   }
 
-  // --- 预约（reserved）：选几个空闲工位造预约 ---
-  const reservedPlan: Array<{ code: string; empNo: string; startH: number; endH: number }> = [
-    { code: 'A-004', empNo: 'EMP017', startH: 9, endH: 12 },
-    { code: 'A-005', empNo: 'EMP018', startH: 13, endH: 18 },
-    { code: 'B-004', empNo: 'EMP021', startH: 10, endH: 12 },
-    { code: 'M-101-1', empNo: 'EMP022', startH: 14, endH: 16 },
-    { code: 'M-101-2', empNo: 'EMP022', startH: 14, endH: 16 },
+  // 预约（reserved）— 用演示工位，避开基线
+  const reservedPlan: Array<{ code: string; empId: number; startH: number; endH: number }> = [
+    { code: 'A-013', empId: 116, startH: 9, endH: 12 },
+    { code: 'A-014', empId: 117, startH: 13, endH: 18 },
+    { code: 'B-014', empId: 118, startH: 10, endH: 12 },
+    { code: 'M-101-1', empId: 116, startH: 14, endH: 16 },
+    { code: 'M-101-2', empId: 116, startH: 14, endH: 16 },
   ];
   const markReserved = db.prepare("UPDATE seats SET status = 'reserved' WHERE code = ?");
   const insertBooking = db.prepare(`
@@ -218,28 +215,21 @@ export function runSeed(): void {
     VALUES (?, ?, ?, ?, 'confirmed')
   `);
   const today = new Date();
-  const fmt = (h: number): string => {
-    const d = new Date(today);
-    d.setHours(h, 0, 0, 0);
-    return d.toISOString();
-  };
+  const fmt = (h: number): string => { const d = new Date(today); d.setHours(h, 0, 0, 0); return d.toISOString(); };
   for (const b of reservedPlan) {
     const seatId = seatIdByCode.get(b.code);
-    const empId = empIdByNo.get(b.empNo);
-    if (!seatId || !empId) continue;
+    if (!seatId) continue;
     markReserved.run(b.code);
-    insertBooking.run(seatId, empId, fmt(b.startH), fmt(b.endH));
+    insertBooking.run(seatId, b.empId, fmt(b.startH), fmt(b.endH));
   }
 
-  // --- 维护（maintenance）：标几个工位为维护中 ---
-  const maintenanceCodes = ['A-016', 'B-016', 'M-101-6'];
+  // 维护（maintenance）— 演示工位
   const markMaint = db.prepare("UPDATE seats SET status = 'maintenance' WHERE code = ?");
-  for (const code of maintenanceCodes) markMaint.run(code);
+  for (const code of ['A-016', 'B-016', 'M-101-6']) markMaint.run(code);
 
-  // --- 每日统计快照（近 7 天，让看板有数据） ---
+  // 每日统计快照（近 7 天）
   const counts = db.prepare(`
-    SELECT
-      COUNT(*) AS total,
+    SELECT COUNT(*) AS total,
       SUM(CASE WHEN status='occupied' THEN 1 ELSE 0 END) AS occupied,
       SUM(CASE WHEN status='available' THEN 1 ELSE 0 END) AS available,
       SUM(CASE WHEN status='reserved' THEN 1 ELSE 0 END) AS reserved
@@ -253,7 +243,6 @@ export function runSeed(): void {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().slice(0, 10);
-    // 让历史数据略有波动（i 越大占用越少），最后一天用真实值
     const jitter = i === 0 ? 0 : Math.min(counts.occupied, Math.floor(Math.random() * 4));
     const occupied = Math.max(0, counts.occupied - jitter);
     const rate = counts.total > 0 ? Number(((occupied / counts.total) * 100).toFixed(1)) : 0;
@@ -262,13 +251,13 @@ export function runSeed(): void {
 
   const seatCount = (db.prepare('SELECT COUNT(*) AS c FROM seats').get() as { c: number }).c;
   const empCount = (db.prepare('SELECT COUNT(*) AS c FROM employees').get() as { c: number }).c;
-  console.log(`[seed] 种子数据完成：${depts.length} 部门 / ${seatCount} 工位 / ${empCount} 员工 / 含分配·预约·维护·统计`);
+  console.log(`[demo-seed] 演示数据完成：${seatCount} 工位 / ${empCount} 员工 / 含分配·预约·维护·统计 + SVG 底图`);
 }
 
-// 直接运行此脚本时执行 seed
+// 直接运行此脚本时执行【演示版】seed（生产灌数据）
 if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
   try {
-    runSeed();
+    runDemoSeed();
     closeDb();
     process.exit(0);
   } catch (err) {
