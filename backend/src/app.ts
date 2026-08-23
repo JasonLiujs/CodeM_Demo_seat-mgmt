@@ -71,7 +71,9 @@ export function createApp(): Express {
   app.use('/api/bookings', bookingsRouter);
 
   // 静态托管上传的图片文件
-  const uploadsPath = join(__dirname, '..', '..', 'uploads');
+  // __dirname 编译后为 backend/dist，上溯一级到 backend/uploads
+  // （与 routes/floor-plans.ts 的 uploadsDir、seed 写入路径保持一致）
+  const uploadsPath = join(__dirname, '..', 'uploads');
   app.use('/uploads', express.static(uploadsPath));
 
   // 生产环境：静态托管前端构建产物
