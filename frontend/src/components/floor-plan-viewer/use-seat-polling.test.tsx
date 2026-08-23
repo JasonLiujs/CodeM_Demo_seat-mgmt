@@ -31,7 +31,7 @@ const mockResponse = {
   data: [mockSeat],
   total: 1,
   page: 1,
-  pageSize: 500,
+  pageSize: 100,
   totalPages: 1,
 };
 
@@ -66,7 +66,7 @@ describe('useSeatPolling', () => {
     await waitFor(() => {
       expect(listSeatsMock).toHaveBeenCalledTimes(1);
     });
-    expect(listSeatsMock).toHaveBeenCalledWith({ floorPlanId: 1, pageSize: 500 });
+    expect(listSeatsMock).toHaveBeenCalledWith({ floorPlanId: 1, pageSize: 100 });
 
     await waitFor(() => {
       expect(result.current.seats).toEqual([mockSeat]);

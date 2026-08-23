@@ -41,5 +41,5 @@ export const SEARCH_DEBOUNCE_MS = 300;
 /** 轮询默认间隔（毫秒） */
 export const DEFAULT_POLLING_INTERVAL = 5000;
 
-/** 轮询单次请求的最大工位数 */
-export const POLLING_PAGE_SIZE = 500;
+/** 轮询单次请求的最大工位数（须 ≤ 后端 /api/seats 的 pageSize 上限 100） */
+export const POLLING_PAGE_SIZE = 100;
