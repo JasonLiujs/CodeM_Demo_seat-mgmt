@@ -18,6 +18,7 @@ import type {
   FloorPlanResponse,
   Department,
 } from '@seat-mgmt/shared';
+import { EmptyState } from '../../components/feedback';
 
 /** 工位查询页面 */
 export function SeatQueryPage(): React.JSX.Element {
@@ -208,24 +209,32 @@ export function SeatQueryPage(): React.JSX.Element {
 
       {/* 无结果提示 */}
       {noResult && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
-          未找到匹配的工位，请尝试调整搜索或筛选条件。
+        <div className="bg-white rounded-lg shadow">
+          <EmptyState
+        message="未找到匹配的工位，请尝试调整搜索或筛选条件"
+      icon="🔍"
+          />
         </div>
       )}
 
       {/* 平面图查看器 */}
       {currentFloorPlan ? (
         <div className="bg-white rounded-lg shadow p-4">
-          <FloorPlanViewer
+          {/* md 下通过 overflow-auto + min-width 适配宽度 */}
+            <div className="overflow-auto">
+            <div className="min-w-[600px]">
+            <FloorPlanViewer
             floorPlanId={currentFloorPlan.id}
-            searchQuery={searchQuery}
-            filters={filters}
-            highlightSeatId={highlightSeatId}
-          onFilteredCountChange={setFilteredCount}
-          />
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow p-4">
+          searchQuery={searchQuery}
+          filters={filters}
+        highlightSeatId={highlightSeatId}
+      onFilteredCountChange={setFilteredCount}
+        />
+          </div>
+            </div>
+          </div>
+        ) : (
+      <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-center h-96 text-gray-400 text-sm border border-dashed border-gray-200 rounded">
             请选择平面图
           </div>

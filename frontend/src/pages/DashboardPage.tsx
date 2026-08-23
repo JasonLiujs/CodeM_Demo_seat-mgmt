@@ -13,6 +13,7 @@ import type {
 } from '@seat-mgmt/shared';
 import { apiGet } from '../api/client';
 import { BarChart, LineChart, PieChart } from '../components/charts';
+import { Skeleton } from '../components/feedback';
 
 /** 统计看板页面 */
 export function DashboardPage() {
@@ -57,8 +58,30 @@ export function DashboardPage() {
 
   if (loading && !overview) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
-        加载中...
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-gray-800">统计看板</h2>
+      {/* 顶部数字卡片骨架 */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  {Array.from({ length: 4 }, (_, i) => (
+<div key={i} className="bg-white rounded-lg shadow p-6">
+  <Skeleton className="h-4 w-16" />
+    <Skeleton className="h-8 w-24 mt-2" />
+      </div>
+        ))}
+        </div>
+          {/* 图表区域骨架 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {Array.from({ length: 2 }, (_, i) => (
+          <div key={i} className="bg-white rounded-lg shadow p-6">
+          <Skeleton className="h-5 w-32 mb-4" />
+        <Skeleton className="h-48 w-full" />
+          </div>
+        ))}
+      </div>
+    <div className="bg-white rounded-lg shadow p-6">
+  <Skeleton className="h-5 w-40 mb-4" />
+          <Skeleton className="h-48 w-full" />
+        </div>
       </div>
     );
   }

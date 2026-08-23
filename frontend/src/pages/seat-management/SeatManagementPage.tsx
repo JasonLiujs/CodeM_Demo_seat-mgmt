@@ -6,6 +6,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { seatApi } from '../../api/seat-api';
 import type { SeatWithAssignee, SeatStatus, SeatType } from '@seat-mgmt/shared';
+import { TableSkeleton, EmptyState } from '../../components/feedback';
+import { useToast } from '../../components/toast/useToast';
 
 /** 筛选条件 */
 interface FilterState {
@@ -39,6 +41,7 @@ const typeLabels: Record<SeatType, string> = {
 };
 
 export function SeatManagementPage() {
+  const { showSuccess } = useToast();
   const [seats, setSeats] = useState<SeatWithAssignee[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -95,10 +98,11 @@ export function SeatManagementPage() {
     if (!confirm('确认删除该工位？')) return;
     try {
       await seatApi.deleteSeat(id);
-      void loadSeats();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '删除失败');
-    }
+      showSuccess('删除成功');
+    void loadSeats();
+      } catch (err) {
+    setError(err instanceof Error ? err.message : '删除失败');
+  }
   };
 
   return (
@@ -184,18 +188,14 @@ export function SeatManagementPage() {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                  加载中...
-                </td>
+              <TableSkeleton columns={7} />
+                ) : seats.length === 0 ? (
+                  <tr>
+                <td colSpan={7}>
+              <EmptyState message="暂无工位数据" />
+            </td>
               </tr>
-            ) : seats.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                  暂无数据
-                </td>
-              </tr>
-            ) : (
+                ) : (
               seats.map((seat) => (
                 <tr key={seat.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-600">{seat.id}</td>

@@ -18,6 +18,7 @@ import type {
   ChangeLogAction,
   PaginatedResponse,
 } from '@seat-mgmt/shared';
+import { Skeleton } from '../../components/feedback';
 
 /** Tab 类型 */
 type TabType = 'assign' | 'transfer' | 'batch' | 'history';
@@ -107,6 +108,7 @@ function AssignTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<{ seat?: string; employee?: string }>({});
 
   /** 加载空闲工位和员工列表 */
   const loadData = useCallback(async () => {
@@ -132,21 +134,29 @@ function AssignTab() {
 
   /** 执行分配 */
   const handleAssign = async () => {
-    if (!selectedSeatId || !selectedEmployeeId) {
-      setError('请选择工位和员工');
-      return;
+    // 内联校验
+      const errors: { seat?: string; employee?: string } = {};
+      if (!selectedSeatId) {
+    errors.seat = '请选择工位';
     }
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    try {
+    if (!selectedEmployeeId) {
+    errors.employee = '请选择员工';
+    }
+      setFormErrors(errors);
+        if (Object.keys(errors).length > 0) {
+        return;
+        }
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
+      try {
       await assignmentApi.assign({
-        seatId: Number(selectedSeatId),
-        employeeId: Number(selectedEmployeeId),
-        assignedBy,
+    seatId: Number(selectedSeatId),
+      employeeId: Number(selectedEmployeeId),
+    assignedBy,
       });
-      setSuccess('工位分配成功');
-      setSelectedSeatId('');
+    setSuccess('工位分配成功');
+  setSelectedSeatId('');
       setSelectedEmployeeId('');
       await loadData();
     } catch (err) {
@@ -169,41 +179,65 @@ function AssignTab() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-gray-800">分配工位给员工</h3>
+      {loading ? (
+        <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+<Skeleton className="h-5 w-32" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          </div>
+            ) : (
+            <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">分配工位给员工</h3>
 
-        {/* 选择工位 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">选择工位（仅显示空闲）</label>
-          <select
-            value={selectedSeatId}
-            onChange={(e) => setSelectedSeatId(e.target.value ? Number(e.target.value) : '')}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            {/* 选择工位 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">选择工位（仅显示空闲）</label>
+                <select
+              value={selectedSeatId}
+            onChange={(e) => {
+          setSelectedSeatId(e.target.value ? Number(e.target.value) : '');
+        setFormErrors((prev) => ({ ...prev, seat: undefined }));
+}}
+        className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+        formErrors.seat ? 'border-red-400' : 'border-gray-300'
+          }`}
           >
             <option value="">请选择工位</option>
             {seats.map((seat) => (
-              <option key={seat.id} value={seat.id}>
-                {seat.code} — {seat.area} ({seat.type})
-              </option>
+            <option key={seat.id} value={seat.id}>
+          {seat.code} — {seat.area} ({seat.type})
+            </option>
             ))}
-          </select>
-        </div>
+              </select>
+                {formErrors.seat && (
+              <p className="text-sm text-red-500 mt-1">{formErrors.seat}</p>
+            )}
+          </div>
 
-        {/* 选择员工 */}
+{/* 选择员工 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">选择员工</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">选择员工</label>
           <select
-            value={selectedEmployeeId}
-            onChange={(e) => setSelectedEmployeeId(e.target.value ? Number(e.target.value) : '')}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">请选择员工</option>
-            {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.empNo} — {emp.name}{emp.departmentName ? ` (${emp.departmentName})` : ''}
-              </option>
-            ))}
-          </select>
+          value={selectedEmployeeId}
+            onChange={(e) => {
+            setSelectedEmployeeId(e.target.value ? Number(e.target.value) : '');
+            setFormErrors((prev) => ({ ...prev, employee: undefined }));
+            }}
+          className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+        formErrors.employee ? 'border-red-400' : 'border-gray-300'
+}`}
+        >
+        <option value="">请选择员工</option>
+          {employees.map((emp) => (
+          <option key={emp.id} value={emp.id}>
+          {emp.empNo} — {emp.name}{emp.departmentName ? ` (${emp.departmentName})` : ''}
+        </option>
+          ))}
+        </select>
+      {formErrors.employee && (
+            <p className="text-sm text-red-500 mt-1">{formErrors.employee}</p>
+          )}
         </div>
 
         {/* 操作人 */}
@@ -226,6 +260,7 @@ function AssignTab() {
           {loading ? '分配中...' : '确认分配'}
         </button>
       </div>
+      )}
     </div>
   );
 }
@@ -374,6 +409,7 @@ function BatchTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [pairErrors, setPairErrors] = useState<Array<{ seat?: string; employee?: string }>>([{}]);
 
   const loadData = useCallback(async () => {
     try {
@@ -395,27 +431,51 @@ function BatchTab() {
   /** 添加一行 */
   const addPair = () => {
     setPairs([...pairs, { seatId: '', employeeId: '' }]);
-  };
+  setPairErrors([...pairErrors, {}]);
+};
 
   /** 删除一行 */
-  const removePair = (index: number) => {
-    setPairs(pairs.filter((_, i) => i !== index));
+    const removePair = (index: number) => {
+  setPairs(pairs.filter((_, i) => i !== index));
+setPairErrors(pairErrors.filter((_, i) => i !== index));
   };
 
-  /** 更新某行 */
-  const updatePair = (index: number, field: keyof BatchPair, value: string) => {
+    /** 更新某行 */
+    const updatePair = (index: number, field: keyof BatchPair, value: string) => {
     const updated = [...pairs];
-    updated[index] = { ...updated[index], [field]: value ? Number(value) : '' };
-    setPairs(updated);
-  };
+  updated[index] = { ...updated[index], [field]: value ? Number(value) : '' };
+setPairs(updated);
+  // 清除该行该字段的校验错误
+  setPairErrors((prev) => {
+    const next = [...prev];
+    next[index] = { ...next[index], [field]: undefined };
+      return next;
+      });
+    };
 
-  /** 执行批量分配 */
-  const handleBatchAssign = async () => {
-    const validPairs = pairs.filter((p) => p.seatId && p.employeeId);
-    if (validPairs.length === 0) {
-      setError('请至少添加一组有效的工位-员工配对');
-      return;
-    }
+    /** 执行批量分配 */
+    const handleBatchAssign = async () => {
+      // 内联校验：每一行如果有任意一个字段填了，另一个也必须填
+      const errors = pairs.map((p) => {
+        const e: { seat?: string; employee?: string } = {};
+        if (p.seatId && !p.employeeId) {
+          e.employee = '请选择员工';
+        }
+        if (p.employeeId && !p.seatId) {
+          e.seat = '请选择工位';
+        }
+        return e;
+      });
+      setPairErrors(errors);
+      const validPairs = pairs.filter((p) => p.seatId && p.employeeId);
+      if (validPairs.length === 0) {
+        setError('请至少添加一组有效的工位-员工配对');
+        return;
+      }
+      // 如果有任何行的校验错误，阻止提交
+      if (errors.some((e) => Object.keys(e).length > 0)) {
+        return;
+      }
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -429,6 +489,7 @@ function BatchTab() {
       });
       setSuccess(`批量分配成功，共分配 ${result.length} 个工位`);
       setPairs([{ seatId: '', employeeId: '' }]);
+      setPairErrors([{}]);
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : '批量分配失败');
@@ -466,31 +527,45 @@ function BatchTab() {
           {pairs.map((pair, index) => (
             <div key={index} className="flex items-center gap-3">
               <span className="text-sm text-gray-400 w-8">{index + 1}.</span>
-              <select
+              <div className="flex-1">
+                <select
                 value={pair.seatId}
                 onChange={(e) => updatePair(index, 'seatId', e.target.value)}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">选择工位</option>
-                {seats.map((seat) => (
-                  <option key={seat.id} value={seat.id}>
-                    {seat.code} — {seat.area}
-                  </option>
-                ))}
-              </select>
-              <span className="text-gray-400">→</span>
-              <select
-                value={pair.employeeId}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                pairErrors[index]?.seat ? 'border-red-400' : 'border-gray-300'
+                }`}
+                  >
+                    <option value="">选择工位</option>
+                  {seats.map((seat) => (
+                <option key={seat.id} value={seat.id}>
+              {seat.code} — {seat.area}
+              </option>
+              ))}
+                </select>
+                {pairErrors[index]?.seat && (
+                <p className="text-xs text-red-500 mt-1">{pairErrors[index].seat}</p>
+              )}
+                </div>
+                <span className="text-gray-400">→</span>
+                  <div className="flex-1">
+                    <select
+                  value={pair.employeeId}
                 onChange={(e) => updatePair(index, 'employeeId', e.target.value)}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">选择员工</option>
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              pairErrors[index]?.employee ? 'border-red-400' : 'border-gray-300'
+                }`}
+                  >
+                  <option value="">选择员工</option>
                 {employees.map((emp) => (
                   <option key={emp.id} value={emp.id}>
-                    {emp.empNo} — {emp.name}
-                  </option>
-                ))}
-              </select>
+                {emp.empNo} — {emp.name}
+              </option>
+            ))}
+          </select>
+                {pairErrors[index]?.employee && (
+                  <p className="text-xs text-red-500 mt-1">{pairErrors[index].employee}</p>
+                )}
+              </div>
               {pairs.length > 1 && (
                 <button
                   onClick={() => removePair(index)}

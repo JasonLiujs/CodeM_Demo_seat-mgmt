@@ -12,6 +12,7 @@ import type {
   Department,
   PaginatedResponse,
 } from '@seat-mgmt/shared';
+import { TableSkeleton, EmptyState } from '../../components/feedback';
 
 /** 操作类型选项 */
 const ACTION_OPTIONS: Array<{ value: string; label: string }> = [
@@ -260,10 +261,22 @@ export function ChangeHistoryPage() {
       {/* 数据表格 */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {loading && !data ? (
-          <div className="flex items-center justify-center h-32 text-gray-400">
-            加载中...
-          </div>
-        ) : data && data.data.length > 0 ? (
+          <table className="w-full">
+            <thead className="bg-gray-50">
+          <tr>
+        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">ID</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">时间</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作类型</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作人</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">工位</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">员工</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">部门</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">原因</th>
+                </tr>
+              </thead>
+              <TableSkeleton columns={8} />
+            </table>
+          ) : data && data.data.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -323,10 +336,8 @@ export function ChangeHistoryPage() {
             </table>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-32 text-gray-400">
-            暂无变更记录
-          </div>
-        )}
+          <EmptyState message="暂无变更记录" icon="📋" />
+            )}
       </div>
 
       {/* 分页 */}

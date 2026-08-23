@@ -8,6 +8,7 @@ import { bookingApi } from '../../api/booking-api';
 import { seatApi } from '../../api/seat-api';
 import type { BookingWithDetail, SeatWithAssignee } from '@seat-mgmt/shared';
 import { SeatStatus, BookingStatus } from '@seat-mgmt/shared';
+import { TableSkeleton, EmptyState } from '../../components/feedback';
 
 /** 日期格式化为 YYYY-MM-DD */
 function formatDate(date: Date): string {
@@ -60,6 +61,13 @@ export function SeatBookingPage() {
   const [employeeId, setEmployeeId] = useState<number>(1);
   const [creating, setCreating] = useState(false);
   const [createMsg, setCreateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // 表单校验错误（内联提示）
+  const [formErrors, setFormErrors] = useState<{
+    seat?: string;
+    startTime?: string;
+    endTime?: string;
+  }>({});
 
   // --- 预约列表状态 ---
   const [currentBookings, setCurrentBookings] = useState<BookingWithDetail[]>([]);
@@ -136,27 +144,37 @@ export function SeatBookingPage() {
 
   /** 创建预约 */
   const handleCreateBooking = async () => {
-    if (!selectedSeatId) {
-      setCreateMsg({ type: 'error', text: '请选择工位' });
-      return;
+    // 内联校验
+      const errors: { seat?: string; startTime?: string; endTime?: string } = {};
+      if (!selectedSeatId) {
+    errors.seat = '请选择工位';
     }
-    if (endTime <= startTime) {
-      setCreateMsg({ type: 'error', text: '结束时间必须晚于开始时间' });
-      return;
+      if (!startTime) {
+      errors.startTime = '请选择开始时间';
     }
+if (!endTime) {
+    errors.endTime = '请选择结束时间';
+    }
+    if (startTime && endTime && endTime <= startTime) {
+      errors.endTime = '结束时间必须晚于开始时间';
+      }
+setFormErrors(errors);
+      if (Object.keys(errors).length > 0) {
+        return;
+        }
 
-    setCreating(true);
-    setCreateMsg(null);
-    try {
+        setCreating(true);
+      setCreateMsg(null);
+      try {
       const startISO = new Date(`${bookingDate}T${startTime}:00`).toISOString();
       const endISO = new Date(`${bookingDate}T${endTime}:00`).toISOString();
 
-      await bookingApi.createBooking({
-        seatId: selectedSeatId,
-        employeeId,
-        startTime: startISO,
-        endTime: endISO,
-      });
+    await bookingApi.createBooking({
+      seatId: selectedSeatId as number,
+    employeeId,
+      startTime: startISO,
+    endTime: endISO,
+  });
       setCreateMsg({ type: 'success', text: '预约成功' });
       // 刷新工位列表（已预约的工位状态变为 reserved）
       await loadAvailableSeats();
@@ -244,16 +262,24 @@ export function SeatBookingPage() {
             </label>
             <select
               value={selectedSeatId ?? ''}
-              onChange={(e) => setSelectedSeatId(Number(e.target.value) || null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
+              onChange={(e) => {
+              setSelectedSeatId(Number(e.target.value) || null);
+            setFormErrors((prev) => ({ ...prev, seat: undefined }));
+              }}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                formErrors.seat ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                >
               <option value="">— 请选择工位 —</option>
-              {seats.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.code}（{s.area} · {s.type}）
-                </option>
-              ))}
+            {seats.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.code}（{s.area} · {s.type}）
+            </option>
+          ))}
             </select>
+            {formErrors.seat && (
+              <p className="text-sm text-red-500 mt-1">{formErrors.seat}</p>
+            )}
             {seats.length === 0 && (
               <p className="text-sm text-gray-400 mt-1">暂无空闲临时工位</p>
             )}
@@ -292,18 +318,34 @@ export function SeatBookingPage() {
               <input
                 type="time"
                 value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+                onChange={(e) => {
+                setStartTime(e.target.value);
+              setFormErrors((prev) => ({ ...prev, startTime: undefined, endTime: undefined }));
+            }}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+              formErrors.startTime ? 'border-red-400' : 'border-gray-300'
+              }`}
+                />
+                {formErrors.startTime && (
+                <p className="text-sm text-red-500 mt-1">{formErrors.startTime}</p>
+                )}
+              </div>
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">结束时间</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">结束时间</label>
               <input
                 type="time"
                 value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => {
+                  setEndTime(e.target.value);
+                  setFormErrors((prev) => ({ ...prev, endTime: undefined }));
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  formErrors.endTime ? 'border-red-400' : 'border-gray-300'
+                }`}
               />
+              {formErrors.endTime && (
+                <p className="text-sm text-red-500 mt-1">{formErrors.endTime}</p>
+              )}
             </div>
           </div>
 
@@ -345,10 +387,27 @@ export function SeatBookingPage() {
 
           {calendarView === 'list' && (
             <>
-              {loadingList && <p className="text-gray-500">加载中...</p>}
-              {listError && <p className="text-red-600">{listError}</p>}
+              {loadingList && (
+              <div className="bg-white rounded-lg shadow overflow-hidden">
+<table className="w-full">
+              <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">ID</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">工位</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">员工</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">开始</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">结束</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">状态</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作</th>
+                          </tr>
+                        </thead>
+                        <TableSkeleton columns={7} />
+                      </table>
+                    </div>
+                  )}
+                  {listError && <p className="text-red-600">{listError}</p>}
 
-              {!loadingList && !listError && (
+                  {!loadingList && !listError && (
                 <div className="bg-white rounded-lg shadow overflow-hidden">
                   <table className="w-full">
                     <thead className="bg-gray-50">
@@ -399,8 +458,8 @@ export function SeatBookingPage() {
                       ))}
                       {(tab === 'current' ? currentBookings : historyBookings).length === 0 && (
                         <tr>
-                          <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                            暂无{tab === 'current' ? '当前' : '历史'}预约
+                          <td colSpan={7}>
+                            <EmptyState message={`暂无${tab === 'current' ? '当前' : '历史'}预约`} />
                           </td>
                         </tr>
                       )}

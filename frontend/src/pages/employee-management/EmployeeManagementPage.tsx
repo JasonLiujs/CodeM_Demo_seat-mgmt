@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, type ChangeEvent } from 'react';
 import type { EmployeeWithDepartment, Department, CsvImportResult, PaginatedResponse } from '@seat-mgmt/shared';
 import { apiGet, apiPut, apiDelete } from '../../api/client';
+import { TableSkeleton, EmptyState } from '../../components/feedback';
 
 /** 员工管理页面 */
 export function EmployeeManagementPage() {
@@ -235,12 +236,12 @@ export function EmployeeManagementPage() {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
+              <TableSkeleton columns={6} />
+                ) : employees.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">加载中...</td>
-              </tr>
-            ) : employees.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">暂无员工数据</td>
+            <td colSpan={6}>
+              <EmptyState message="暂无员工数据" />
+                </td>
               </tr>
             ) : (
               employees.map((emp) => (

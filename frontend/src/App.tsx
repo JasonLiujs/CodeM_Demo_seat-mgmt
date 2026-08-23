@@ -11,7 +11,9 @@ import { SeatAssignmentPage } from './pages/seat-assignment/SeatAssignmentPage';
 import { SeatQueryPage } from './pages/seat-query/SeatQueryPage';
 import { SeatBookingPage } from './pages/seat-booking/SeatBookingPage';
 import { ChangeHistoryPage } from './pages/change-history/ChangeHistoryPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { Layout } from './components/Layout';
+import { ToastProvider } from './components/toast/ToastProvider';
 
 export function App() {
   return (
@@ -27,9 +29,10 @@ export function App() {
           <Route path="/change-history" element={<ChangeHistoryPage />} />
           <Route path="/employee-management" element={<EmployeeManagementPage />} />
           <Route path="/seat-assignment" element={<SeatAssignmentPage />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
+      <ToastProvider />
     </BrowserRouter>
   );
 }

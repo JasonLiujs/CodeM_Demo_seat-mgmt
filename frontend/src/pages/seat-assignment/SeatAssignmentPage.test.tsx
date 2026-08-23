@@ -92,9 +92,11 @@ describe('SeatAssignmentPage', () => {
     expect(screen.getByText('变更历史')).toBeInTheDocument();
   });
 
-  it('默认显示分配管理 Tab', () => {
+  it('默认显示分配管理 Tab', async () => {
     renderPage();
-    expect(screen.getByText('分配工位给员工')).toBeInTheDocument();
+    await waitFor(() => {
+  expect(screen.getByText('分配工位给员工')).toBeInTheDocument();
+    });
   });
 
   it('点击 Tab 可切换到工位变更', async () => {
@@ -132,12 +134,14 @@ describe('SeatAssignmentPage', () => {
 
   it('未选择工位和员工时确认分配按钮应 disabled', async () => {
     renderPage();
-    // 等待初始数据加载完成
+    // 等待表单渲染完成（loading 结束后）
     await waitFor(() => {
-    const button = screen.getByText('确认分配');
+    expect(screen.getByText('确认分配')).toBeInTheDocument();
+    });
+  // 未选择工位和员工时按钮应 disabled
+  const button = screen.getByText('确认分配');
     expect(button).toBeDisabled();
-  });
-  expect(assignmentApi.assign).not.toHaveBeenCalled();
+      expect(assignmentApi.assign).not.toHaveBeenCalled();
     });
 
   it('批量分配 Tab 应能添加和删除行', () => {
