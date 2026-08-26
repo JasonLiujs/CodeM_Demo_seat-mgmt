@@ -86,7 +86,7 @@ export function FloorPlanViewer({
     let cancelled = false;
     void Promise.all([
       apiGet<Department[]>('/departments'),
-      apiGet<PaginatedResponse<EmployeeWithDepartment>>('/employees?pageSize=500'),
+      apiGet<PaginatedResponse<EmployeeWithDepartment>>('/employees?pageSize=100'),
     ])
       .then(([depts, empResult]) => {
         if (cancelled) return;

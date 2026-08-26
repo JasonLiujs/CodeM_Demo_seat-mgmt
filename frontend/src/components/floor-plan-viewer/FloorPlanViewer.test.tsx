@@ -60,7 +60,7 @@ vi.mock('../../api/seat-api', () => ({
       ],
       total: 3,
       page: 1,
-      pageSize: 500,
+      pageSize: 100,
       totalPages: 1,
     }),
   },
@@ -103,7 +103,7 @@ vi.mock('../../api/client', () => ({
       ],
       total: 2,
       page: 1,
-      pageSize: 500,
+      pageSize: 100,
       totalPages: 1,
     });
   }),
@@ -111,10 +111,19 @@ vi.mock('../../api/client', () => ({
 
 // 导入必须在 mock 之后（vi.mock 自动提升到文件顶部）
 import { FloorPlanViewer } from './FloorPlanViewer';
+import { apiGet } from '../../api/client';
 
 describe('FloorPlanViewer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('加载员工列表时不超过后端 pageSize 上限', async () => {
+    render(<FloorPlanViewer floorPlanId={1} />);
+
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith('/employees?pageSize=100');
+    });
   });
 
   it('渲染 SVG 容器与工位 rect', async () => {
