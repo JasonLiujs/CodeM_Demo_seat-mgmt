@@ -10,6 +10,7 @@ services:
       DB_PATH: ${DB_PATH:-/app/backend/data/seat-mgmt.db}
     volumes:
       - seat-mgmt-data:/app/backend/data
+      - seat-mgmt-uploads:/app/backend/uploads
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:${APP_PORT:-8080}/healthz']
       interval: 30s
@@ -55,6 +56,7 @@ services:
 
 volumes:
   seat-mgmt-data:
+  seat-mgmt-uploads:
 
 networks:
   caddy-net:

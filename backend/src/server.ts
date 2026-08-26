@@ -9,9 +9,12 @@ import { runMigrations } from './db/migrate.js';
 import { closeDb } from './db/connection.js';
 import { statsService } from './services/stats-service.js';
 import { bookingService } from './services/booking-service.js';
+import { ensureDefaultFloorPlanImage } from './services/floor-plan-image-service.js';
 
 // 启动时执行数据库 migration（增量、可向后兼容）
 runMigrations();
+// 容器替换后恢复数据库所引用的内置 SVG 底图
+ensureDefaultFloorPlanImage();
 
 const app = createApp();
 

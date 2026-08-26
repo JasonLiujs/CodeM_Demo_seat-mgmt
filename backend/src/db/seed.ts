@@ -11,25 +11,13 @@
  * 均用 INSERT OR IGNORE / 显式 id，保证可重复执行。
  */
 
-import { writeFileSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { getDb, closeDb } from './connection.js';
 import { runMigrations } from './migrate.js';
-import { buildFloorPlanSvg, FLOOR_PLAN_WIDTH, FLOOR_PLAN_HEIGHT } from './floor-plan-svg.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-/** uploads 目录（与 app.ts / floor-plans.ts 的 uploadsDir 一致：backend/uploads） */
-const UPLOADS_DIR = join(__dirname, '..', '..', 'uploads');
-const FLOOR_PLAN_FILENAME = 'floor-plan-main.svg';
-const FLOOR_PLAN_URL = `/uploads/${FLOOR_PLAN_FILENAME}`;
-
-/** 把 SVG 底图写入 backend/uploads/（uploads 被 gitignore，部署时由 seed 生成） */
-function writeFloorPlanImage(): void {
-  mkdirSync(UPLOADS_DIR, { recursive: true });
-  writeFileSync(join(UPLOADS_DIR, FLOOR_PLAN_FILENAME), buildFloorPlanSvg(), 'utf-8');
-}
+import { FLOOR_PLAN_WIDTH, FLOOR_PLAN_HEIGHT } from './floor-plan-svg.js';
+import {
+  DEFAULT_FLOOR_PLAN_URL,
+  ensureDefaultFloorPlanImage,
+} from '../services/floor-plan-image-service.js';
 
 /**
  * runSeed — 单元测试基线数据（与历史 seed 完全一致，勿改 id/数量，否则测试断言失效）
@@ -127,7 +115,7 @@ function buildDemoSeats(): Array<[number, string, string, string, number, number
  */
 export function runDemoSeed(): void {
   runSeed(); // 先保证基线数据存在
-  writeFloorPlanImage();
+  ensureDefaultFloorPlanImage();
 
   const db = getDb();
 
@@ -138,7 +126,7 @@ export function runDemoSeed(): void {
 
   // 平面图 id=1 指向 SVG 底图（基线 id=1 是空 image_url，这里更新指向底图）
   db.prepare('UPDATE floor_plans SET image_url = ?, name = ?, width = ?, height = ? WHERE id = 1')
-    .run(FLOOR_PLAN_URL, '3楼 · 办公区', FLOOR_PLAN_WIDTH, FLOOR_PLAN_HEIGHT);
+    .run(DEFAULT_FLOOR_PLAN_URL, '3楼 · 办公区', FLOOR_PLAN_WIDTH, FLOOR_PLAN_HEIGHT);
 
   // 演示工位（id 100+）
   const insertSeat = db.prepare(`
